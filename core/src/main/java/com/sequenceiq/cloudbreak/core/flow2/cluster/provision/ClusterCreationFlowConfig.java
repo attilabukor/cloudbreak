@@ -272,7 +272,8 @@ public class ClusterCreationFlowConfig extends AbstractFlowConfiguration<Cluster
     public ClusterCreationEvent[] getInitEvents() {
         return new ClusterCreationEvent[] {
                 CLUSTER_CREATION_EVENT,
-                CLUSTER_INSTALL_EVENT
+                CLUSTER_INSTALL_EVENT,
+
         };
     }
 

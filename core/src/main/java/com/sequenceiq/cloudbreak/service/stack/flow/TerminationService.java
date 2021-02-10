@@ -98,6 +98,12 @@ public class TerminationService {
         }
     }
 
+    public void finalizeRecoveryTeardown(Long stackId) {
+        Stack stack = stackService.getByIdWithListsInTransaction(stackId);
+        cleanupFreeIpa(stack);
+        deleteMetaDataInstances(stack);
+    }
+
     private void cleanupFreeIpa(Stack stack) {
         try {
             freeIpaCleanupService.cleanupButIp(stack);
@@ -148,6 +154,13 @@ public class TerminationService {
             instanceMetaDatas.add(metaData);
         }
         instanceMetaDataService.saveAll(instanceMetaDatas);
+    }
+
+    private void deleteMetaDataInstances(Stack stack) {
+        for (InstanceMetaData metaData : stack.getNotDeletedInstanceMetaDataSet()) {
+            LOGGER.debug("Deleting instance metadata entry {}", metaData);
+            instanceMetaDataService.delete(metaData);
+        }
     }
 
 }
