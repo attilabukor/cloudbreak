@@ -380,7 +380,6 @@ public class StackCreatorService {
             for (InstanceMetaData instanceMetaData : instanceGroup.getAllInstanceMetaData()) {
                 instanceMetaData.setPrivateId(privateIdNumber++);
                 instanceMetaData.setInstanceStatus(InstanceStatus.REQUESTED);
-                instanceMetaData.setTerminationDate(null);
             }
         }
     }

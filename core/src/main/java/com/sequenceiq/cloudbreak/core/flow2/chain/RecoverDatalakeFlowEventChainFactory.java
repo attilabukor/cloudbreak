@@ -34,8 +34,6 @@ public class RecoverDatalakeFlowEventChainFactory implements FlowEventChainFacto
 
         flowEventChain.add(new StackEvent(FlowChainTriggers.RECOVERY_PROVISION_TRIGGER_EVENT, event.getResourceId(), event.accepted()));
 
-
-
         return new FlowTriggerEventQueue(getName(), flowEventChain);
     }
 }

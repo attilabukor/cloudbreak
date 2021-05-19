@@ -1,6 +1,6 @@
 package com.sequenceiq.cloudbreak.reactor.handler.cluster.upgrade.recover;
 
-import static com.sequenceiq.cloudbreak.util.Benchmark.measure;
+import java.util.List;
 
 import javax.inject.Inject;
 
@@ -9,12 +9,19 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import com.sequenceiq.cloudbreak.api.endpoint.v4.common.DetailedStackStatus;
+import com.sequenceiq.cloudbreak.api.endpoint.v4.common.StackType;
+import com.sequenceiq.cloudbreak.api.endpoint.v4.common.Status;
+import com.sequenceiq.cloudbreak.cloud.model.CloudInstance;
 import com.sequenceiq.cloudbreak.common.event.Selectable;
 import com.sequenceiq.cloudbreak.controller.StackCreatorService;
+import com.sequenceiq.cloudbreak.core.flow2.stack.upscale.StackUpscaleService;
 import com.sequenceiq.cloudbreak.domain.stack.Stack;
+import com.sequenceiq.cloudbreak.domain.stack.instance.InstanceGroup;
 import com.sequenceiq.cloudbreak.reactor.api.event.cluster.upgrade.recovery.bringup.DatalakeRecoveryBringupFailedEvent;
 import com.sequenceiq.cloudbreak.reactor.api.event.cluster.upgrade.recovery.bringup.DatalakeRecoveryBringupRequest;
 import com.sequenceiq.cloudbreak.reactor.api.event.cluster.upgrade.recovery.bringup.DatalakeRecoveryBringupSuccess;
+import com.sequenceiq.cloudbreak.service.cluster.ClusterService;
+import com.sequenceiq.cloudbreak.service.datalake.DatalakeResourcesService;
 import com.sequenceiq.cloudbreak.service.stack.InstanceMetaDataService;
 import com.sequenceiq.cloudbreak.service.stack.StackService;
 import com.sequenceiq.flow.event.EventSelectorUtil;
@@ -35,7 +42,16 @@ public class DatalakeRecoveryBringupHandler extends ExceptionCatcherEventHandler
     private StackCreatorService stackCreatorService;
 
     @Inject
+    private StackUpscaleService stackUpscaleService;
+
+    @Inject
     private InstanceMetaDataService instanceMetaDataService;
+
+    @Inject
+    private ClusterService clusterService;
+
+    @Inject
+    private DatalakeResourcesService datalakeResourcesService;
 
     @Override
     public String selector() {
@@ -55,9 +71,21 @@ public class DatalakeRecoveryBringupHandler extends ExceptionCatcherEventHandler
         LOGGER.debug("Relaunching instances for stack {}", stackId);
         try {
             Stack stack = stackService.getByIdWithClusterInTransaction(stackId);
-            stackCreatorService.prepareInstanceMetadata(stack);
-            measure(() -> instanceMetaDataService.saveAll(stack.getInstanceMetaDataAsList()),
-                    LOGGER, "Instance metadatas saved in {} ms for stack {}", stack.getName());
+
+            for(InstanceGroup instanceGroup : stack.getInstanceGroups()) {
+                List<CloudInstance> newInstance =
+                        stackUpscaleService.buildNewInstances(stack, instanceGroup.getGroupName(), instanceGroup.getInitialNodeCount());
+                instanceMetaDataService.saveInstanceAndGetUpdatedStack(stack, newInstance, true);
+            }
+            clusterService.updateClusterStatusByStackId(stackId, Status.REQUESTED);
+
+            if (stack.getType() == StackType.DATALAKE) {
+                datalakeResourcesService.deleteWithDependenciesByStackId(stack.getId());
+            }
+//            Stack updatedStack = instanceMetaDataService.saveInstanceAndGetUpdatedStack(stack, newInstances, true);
+//            stackCreatorService.prepareInstanceMetadata(stack);
+//            measure(() -> instanceMetaDataService.saveAll(stack.getInstanceMetaDataAsList()),
+//                    LOGGER, "Instance metadata saved in {} ms for stack {}", stack.getName());
 
             result = new DatalakeRecoveryBringupSuccess(stackId);
         } catch (Exception e) {
@@ -66,4 +94,6 @@ public class DatalakeRecoveryBringupHandler extends ExceptionCatcherEventHandler
         }
         return result;
     }
+
+
 }

@@ -24,8 +24,7 @@ public class RecovereyTeardownFlowEventChainFactory implements FlowEventChainFac
     @Override
     public FlowTriggerEventQueue createFlowTriggerEventQueue(TerminationEvent event) {
         Queue<Selectable> flowEventChain = new ConcurrentLinkedQueue<>();
-        flowEventChain.add(new TerminationEvent(ClusterTerminationEvent.RECOVERY_TERMINATION_EVENT.event(), event.getResourceId(), event.getTerminationType(),
-                event.accepted()));
+        flowEventChain.add(new TerminationEvent(ClusterTerminationEvent.RECOVERY_TERMINATION_EVENT.event(), event.getResourceId(), TerminationType.RECOVERY, event.accepted()));
 
         flowEventChain.add(new TerminationEvent(StackTerminationEvent.TERMINATION_EVENT.event(), event.getResourceId(), TerminationType.RECOVERY,
                 event.accepted()));
