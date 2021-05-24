@@ -315,6 +315,12 @@
           "TargetType" : "instance",
           "HealthCheckPort" : "${listener.targetGroup.healthCheckPort}",
           "HealthCheckIntervalSeconds" : 10,
+          <#if loadBalancer.awsScheme == "internal">
+          "TargetGroupAttributes" : [{
+            "Key" : "preserve_client_ip.enabled",
+            "Value" : "false"
+          }],
+          </#if>
           "HealthyThresholdCount" : 2,
           "UnhealthyThresholdCount" : 2,
           <#if existingVPC>

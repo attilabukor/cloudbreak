@@ -385,8 +385,14 @@ public class StackToTemplatePreparationObjectConverter extends AbstractConversio
                 generalClusterConfigs.setPrimaryGatewayInstanceDiscoveryFQDN(Optional.of(source.getPrimaryGatewayInstance().getDiscoveryFQDN()));
             }
         }
-        generalClusterConfigs.setLoadBalancerGatewayFqdn(Optional.ofNullable(loadBalancerConfigService.getLoadBalancerUserFacingFQDN(source.getId())));
+        populateLoadBalancerInfo(source, generalClusterConfigs);
         return generalClusterConfigs;
+    }
+
+    private void populateLoadBalancerInfo(Stack source,
+        GeneralClusterConfigs generalClusterConfigs) {
+        generalClusterConfigs.setLoadBalancerGatewayFqdn(Optional.ofNullable(loadBalancerConfigService.getLoadBalancerUserFacingFQDN(source.getId())));
+        generalClusterConfigs.setInternalLoadBalancerEndpoint(Optional.ofNullable(loadBalancerConfigService.getInternalLoadBalancerEndpoint(source.getId())));
     }
 
     private void decorateBuilderWithServicePrincipals(Stack source, Builder builder,

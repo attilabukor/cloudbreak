@@ -46,6 +46,7 @@ import com.sequenceiq.cloudbreak.domain.Network;
 import com.sequenceiq.cloudbreak.domain.stack.Stack;
 import com.sequenceiq.cloudbreak.domain.stack.cluster.Cluster;
 import com.sequenceiq.cloudbreak.domain.stack.instance.InstanceGroup;
+import com.sequenceiq.cloudbreak.domain.stack.instance.InstanceMetaData;
 import com.sequenceiq.cloudbreak.domain.stack.loadbalancer.LoadBalancer;
 import com.sequenceiq.cloudbreak.service.stack.LoadBalancerPersistenceService;
 import com.sequenceiq.cloudbreak.util.FileReaderUtils;
@@ -593,6 +594,28 @@ public class LoadBalancerConfigServiceTest extends SubnetTest {
     }
 
     @Test
+    public void testGetInternalLoadBalancer() {
+        Set<LoadBalancer> loadBalancers = createLoadBalancers();
+
+        when(loadBalancerPersistenceService.findByStackId(0L)).thenReturn(loadBalancers);
+
+        Optional<LoadBalancer> lb = underTest.getLoadBalancerWithEndpointDefined(0L, LoadBalancerType.PRIVATE);
+        assertEquals(PRIVATE_FQDN, lb.get().getFqdn());
+    }
+
+    @Test
+    public void testGetInternalLoadBalancerNone() {
+        Set<LoadBalancer> loadBalancers = Set.of();
+
+        when(loadBalancerPersistenceService.findByStackId(0L)).thenReturn(loadBalancers);
+
+        when(loadBalancerPersistenceService.findByStackId(0L)).thenReturn(loadBalancers);
+
+        Optional<LoadBalancer> lb = underTest.getLoadBalancerWithEndpointDefined(0L, LoadBalancerType.PRIVATE);
+        assertTrue(lb.isEmpty());
+    }
+
+    @Test
     public void testCreateLoadBalancerUnsupportedPlatform() {
         Stack stack = createAwsStack(StackType.DATALAKE, PRIVATE_ID_1);
         stack.setCloudPlatform(GCP);
@@ -666,6 +689,29 @@ public class LoadBalancerConfigServiceTest extends SubnetTest {
                 .filter(ig -> "master".equals(ig.getGroupName()))
                 .findFirst().get();
             assertEquals(1, masterInstanceGroup.getTargetGroups().size());
+
+            checkAvailabilitySetAttributes(loadBalancers);
+        });
+    }
+
+    @Test
+    public void testCreateAzurePrivateLoadBalancerWithOozieHA() {
+        Stack stack = createAzureStack(StackType.DATALAKE, PRIVATE_ID_1, true);
+        CloudSubnet subnet = getPrivateCloudSubnet(PRIVATE_ID_1, AZ_1);
+        DetailedEnvironmentResponse environment = createEnvironment(subnet, false);
+
+        when(entitlementService.datalakeLoadBalancerEnabled(anyString())).thenReturn(true);
+        when(blueprint.getBlueprintText()).thenReturn(getBlueprintText("input/de-ha.bp"));
+        when(subnetSelector.findSubnetById(any(), anyString())).thenReturn(Optional.of(subnet));
+
+        ThreadBasedUserCrnProvider.doAs(USER_CRN, () -> {
+            Set<LoadBalancer> loadBalancers = underTest.createLoadBalancers(stack, environment, false);
+            assertEquals(1, loadBalancers.size());
+            assertEquals(LoadBalancerType.PRIVATE, loadBalancers.iterator().next().getType());
+            InstanceGroup masterInstanceGroup = stack.getInstanceGroups().stream()
+                .filter(ig -> "master".equals(ig.getGroupName()))
+                .findFirst().get();
+            assertEquals(2, masterInstanceGroup.getTargetGroups().size());
 
             checkAvailabilitySetAttributes(loadBalancers);
         });
@@ -788,6 +834,10 @@ public class LoadBalancerConfigServiceTest extends SubnetTest {
         instanceGroup1.setGroupName("master");
         instanceGroup1.setAttributes(new Json(new HashMap<String, Object>()));
         instanceGroups.add(instanceGroup1);
+        InstanceMetaData imd1 = new InstanceMetaData();
+        InstanceMetaData imd2 = new InstanceMetaData();
+        Set<InstanceMetaData> imdSet = Set.of(imd1, imd2);
+        instanceGroup1.setInstanceMetaData(imdSet);
         Stack stack = new Stack();
         stack.setType(type);
         stack.setCluster(cluster);

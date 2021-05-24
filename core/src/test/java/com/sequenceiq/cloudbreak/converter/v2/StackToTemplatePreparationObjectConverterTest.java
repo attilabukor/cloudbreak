@@ -577,4 +577,15 @@ public class StackToTemplatePreparationObjectConverterTest {
         assertEquals(lbUrl, result.getGeneralClusterConfigs().getLoadBalancerGatewayFqdn().get());
     }
 
+    @Test
+    public void testConvertWhenOozieIsHA() {
+        String dns = "a.b.c.d.e.f";
+
+        when(loadBalancerConfigService.getInternalLoadBalancerEndpoint(anyLong())).thenReturn(dns);
+
+        TemplatePreparationObject result = underTest.convert(stackMock);
+
+        assertEquals(dns, result.getGeneralClusterConfigs().getInternalLoadBalancerEndpoint().get());
+    }
+
 }

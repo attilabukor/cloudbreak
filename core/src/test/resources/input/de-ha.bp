@@ -419,7 +419,6 @@
           "zeppelin-ZEPPELIN_SERVER-BASE",
           "das-DAS_EVENT_PROCESSOR",
           "das-DAS_WEBAPP",
-          "knox-KNOX_GATEWAY-BASE",
           "hdfs-JOURNALNODE-BASE",
           "zookeeper-SERVER-BASE",
           "yarn-GATEWAY-BASE"

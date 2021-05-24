@@ -43,10 +43,13 @@ public class FreeIPAEndpointManagementService extends BasePublicEndpointManageme
             try {
                 if (StringUtils.isNotEmpty(loadBalancer.getDns())) {
                     sendAddDnsCnameRecordRequest(stack, loadBalancer);
-                } else if (StringUtils.isNotEmpty(loadBalancer.getIp())) {
+                } else {
+                    LOGGER.error("Unable to find DNS for load balancer. Load balancer address will not be registered as CNAME with FreeIPA.");
+                }
+                if (StringUtils.isNotEmpty(loadBalancer.getIp())) {
                     sendAddDnsARecordRequest(stack, loadBalancer);
                 } else {
-                    LOGGER.error("Unable to find DNS or IP for load balancer. Load balancer will not be registered with FreeIPA.");
+                    LOGGER.error("Unable to find IP for load balancer. Load balancer IP will not be registered with FreeIPA.");
                 }
             } catch (Exception e) {
                 LOGGER.error("Unable to register load balancer with FreeIPA", e);
@@ -77,6 +80,7 @@ public class FreeIPAEndpointManagementService extends BasePublicEndpointManageme
         request.setHostname(endpoint);
         request.setIp(ip);
         request.setEnvironmentCrn(stack.getEnvironmentCrn());
+        request.setCreateReverse(true);
         LOGGER.debug("Registering load balancer with target IP {} in FreeIPA with A record {}", ip, endpoint);
         String accountId = ThreadBasedUserCrnProvider.getAccountId();
         ThreadBasedUserCrnProvider.doAsInternalActor(() -> dnsV1Endpoint.addDnsARecordInternal(accountId, request));
