@@ -19,6 +19,8 @@ public class GcpResourceNameService extends CloudbreakResourceNameService {
 
     private static final String FIREWALL_IN_NAME_SUFFIX = "in";
 
+    private static final String INSTANCE_GROUP_NAME_SUFFIX = "group";
+
     private static final int ATTACHED_DISKS_PART_COUNT = 4;
 
     private static final int INSTANCE_NAME_PART_COUNT = 3;
@@ -27,6 +29,7 @@ public class GcpResourceNameService extends CloudbreakResourceNameService {
     private int maxResourceNameLength;
 
     @Override
+    @SuppressWarnings("checkstyle:CyclomaticComplexity")
     public String resourceName(ResourceType resourceType, Object... parts) {
         String resourceName;
 
@@ -57,6 +60,9 @@ public class GcpResourceNameService extends CloudbreakResourceNameService {
                 break;
             case GCP_DATABASE:
                 resourceName = deploymentTemplateName(parts);
+                break;
+            case GCP_INSTANCE_GROUP:
+                resourceName = stackBasedResourceWithSuffix(INSTANCE_GROUP_NAME_SUFFIX, parts);
                 break;
             default:
                 throw new IllegalStateException("Unsupported resource type: " + resourceType);

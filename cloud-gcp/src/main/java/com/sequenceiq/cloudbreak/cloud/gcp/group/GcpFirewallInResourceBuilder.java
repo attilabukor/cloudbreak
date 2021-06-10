@@ -17,8 +17,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
 import com.google.api.client.auth.oauth2.TokenResponseException;
-import com.google.api.client.googleapis.json.GoogleJsonResponseException;
 import com.google.api.services.compute.Compute;
+import com.google.api.services.compute.Compute.Firewalls.Delete;
 import com.google.api.services.compute.Compute.Firewalls.Update;
 import com.google.api.services.compute.ComputeRequest;
 import com.google.api.services.compute.model.Firewall;
@@ -68,15 +68,7 @@ public class GcpFirewallInResourceBuilder extends AbstractGcpGroupBuilder {
                 && gcpStackUtil.isExistingNetwork(network))
                 ? updateExistingFirewallForNewTargets(context, auth, group)
                 : createNewFirewallRule(context, auth, group, network, security, buildableResource, projectId);
-        try {
-            Operation operation = firewallRequest.execute();
-            if (operation.getHttpErrorStatusCode() != null) {
-                throw new GcpResourceException(operation.getHttpErrorMessage(), resourceType(), buildableResource.getName());
-            }
-            return createOperationAwareCloudResource(buildableResource, operation);
-        } catch (GoogleJsonResponseException e) {
-            throw new GcpResourceException(checkException(e), resourceType(), buildableResource.getName());
-        }
+        return doOperationalRequest(buildableResource, firewallRequest);
     }
 
     private Update updateExistingFirewallForNewTargets(GcpContext context, AuthenticatedContext auth, Group group)
@@ -141,13 +133,8 @@ public class GcpFirewallInResourceBuilder extends AbstractGcpGroupBuilder {
 
     @Override
     public CloudResource delete(GcpContext context, AuthenticatedContext auth, CloudResource resource, Network network) throws Exception {
-        try {
-            Operation operation = context.getCompute().firewalls().delete(context.getProjectId(), resource.getName()).execute();
-            return createOperationAwareCloudResource(resource, operation);
-        } catch (GoogleJsonResponseException e) {
-            exceptionHandler(e, resource.getName(), resourceType());
-            return null;
-        }
+        Delete delete = context.getCompute().firewalls().delete(context.getProjectId(), resource.getName());
+        return doOperationalRequest(resource, delete);
     }
 
     @Override

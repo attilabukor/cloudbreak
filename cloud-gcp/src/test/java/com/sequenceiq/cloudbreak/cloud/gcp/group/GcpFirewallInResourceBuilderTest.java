@@ -65,6 +65,7 @@ public class GcpFirewallInResourceBuilderTest {
         when(firewalls.delete(anyString(), anyString())).thenReturn(firewallsDelete);
         when(firewallsDelete.execute()).thenReturn(operation);
         when(operation.getName()).thenReturn("name");
+        when(operation.getHttpErrorStatusCode()).thenReturn(null);
 
         CloudResource delete = underTest.delete(gcpContext, authenticatedContext, resource, network);
 
