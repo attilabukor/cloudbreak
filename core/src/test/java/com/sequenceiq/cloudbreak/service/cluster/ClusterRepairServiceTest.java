@@ -144,6 +144,9 @@ public class ClusterRepairServiceTest {
     @Mock
     private FreeipaService freeipaService;
 
+    @Mock
+    private VolumeSetManagerService volumeSetManagerService;
+
     private Stack stack;
 
     private Cluster cluster;

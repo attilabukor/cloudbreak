@@ -21,6 +21,7 @@ import com.sequenceiq.cloudbreak.reactor.api.event.cluster.upgrade.recovery.brin
 import com.sequenceiq.cloudbreak.reactor.api.event.cluster.upgrade.recovery.bringup.DatalakeRecoveryBringupRequest;
 import com.sequenceiq.cloudbreak.reactor.api.event.cluster.upgrade.recovery.bringup.DatalakeRecoveryBringupSuccess;
 import com.sequenceiq.cloudbreak.service.cluster.ClusterService;
+import com.sequenceiq.cloudbreak.service.cluster.VolumeSetManagerService;
 import com.sequenceiq.cloudbreak.service.datalake.DatalakeResourcesService;
 import com.sequenceiq.cloudbreak.service.stack.InstanceMetaDataService;
 import com.sequenceiq.cloudbreak.service.stack.StackService;
@@ -53,6 +54,9 @@ public class DatalakeRecoveryBringupHandler extends ExceptionCatcherEventHandler
     @Inject
     private DatalakeResourcesService datalakeResourcesService;
 
+    @Inject
+    private VolumeSetManagerService volumeSetManagerService;
+
     @Override
     public String selector() {
         return EventSelectorUtil.selector(DatalakeRecoveryBringupRequest.class);
@@ -71,8 +75,11 @@ public class DatalakeRecoveryBringupHandler extends ExceptionCatcherEventHandler
         LOGGER.debug("Relaunching instances for stack {}", stackId);
         try {
             Stack stack = stackService.getByIdWithClusterInTransaction(stackId);
-
-            for(InstanceGroup instanceGroup : stack.getInstanceGroups()) {
+            // sort by name to avoid shuffling the different instance groups
+//            List<InstanceGroup> instanceGroups = stack.getInstanceGroupsAsList();
+//            Collections.sort(instanceGroups);
+            List<InstanceGroup> instanceGroups = stackCreatorService.sortInstanceGroups(stack);
+            for(InstanceGroup instanceGroup : instanceGroups) {
                 List<CloudInstance> newInstance =
                         stackUpscaleService.buildNewInstances(stack, instanceGroup.getGroupName(), instanceGroup.getInitialNodeCount());
                 instanceMetaDataService.saveInstanceAndGetUpdatedStack(stack, newInstance, true);
@@ -80,8 +87,10 @@ public class DatalakeRecoveryBringupHandler extends ExceptionCatcherEventHandler
             clusterService.updateClusterStatusByStackId(stackId, Status.REQUESTED);
 
             if (stack.getType() == StackType.DATALAKE) {
-                datalakeResourcesService.deleteWithDependenciesByStackId(stack.getId());
+                datalakeResourcesService.deleteByStackId(stack.getId());
             }
+
+//            volumeSetManagerService.updateVolumesDeleteFlag(stack, resource -> true, false);
 //            Stack updatedStack = instanceMetaDataService.saveInstanceAndGetUpdatedStack(stack, newInstances, true);
 //            stackCreatorService.prepareInstanceMetadata(stack);
 //            measure(() -> instanceMetaDataService.saveAll(stack.getInstanceMetaDataAsList()),

@@ -202,6 +202,20 @@ public class ClusterOperationService {
         flowManager.triggerClusterTermination(stack, forced, ThreadBasedUserCrnProvider.getUserCrn());
     }
 
+    public void updateDeleteVolumesFlag(Long stackId, boolean deleteVolumes) {
+        Stack stack = stackService.getByIdWithListsInTransaction(stackId);
+        List<Resource> volumeSets = stack.getDiskResources();
+
+        try {
+            transactionService.required(() -> {
+                volumeSets.forEach(resource -> updateDeleteVolumesFlag(deleteVolumes, resource));
+                return resourceService.saveAll(volumeSets);
+            });
+        } catch (TransactionService.TransactionExecutionException e) {
+            throw new TransactionService.TransactionRuntimeExecutionException(e);
+        }
+    }
+
     private void markVolumesForDeletion(Stack stack) {
         if (!StackService.REATTACH_COMPATIBLE_PLATFORMS.contains(stack.getPlatformVariant())) {
             return;

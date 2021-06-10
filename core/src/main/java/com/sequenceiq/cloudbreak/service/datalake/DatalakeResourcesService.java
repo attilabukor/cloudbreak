@@ -46,6 +46,12 @@ public class DatalakeResourcesService extends AbstractWorkspaceAwareResourceServ
 
     }
 
+    public void deleteByStackId(Long stackId) {
+        datalakeResourcesRepository.findByDatalakeStackId(stackId).ifPresent(datalakeResources -> {
+            datalakeResourcesRepository.delete(datalakeResources);
+        });
+    }
+
     @Transactional
     public void deleteWithDependenciesByStackId(Long stackId) {
         datalakeResourcesRepository.findByDatalakeStackId(stackId).ifPresent(datalakeResources -> {

@@ -35,7 +35,7 @@ auth:
     datalake:
       efs.enable: false
       customimage.enable: true
-      loadbalancer.enable: false
+      loadbalancer.enable: true
       backup.on.upgrade.enable: false
     differentdatahubversionthandatalake.enabled: true
     database.wire.encryption.enable: true

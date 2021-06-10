@@ -372,16 +372,19 @@ public class StackCreatorService {
 
     public void prepareInstanceMetadata(Stack stack) {
         long privateIdNumber = 0;
-        //Gateway HostGroups are sorted first to start with privateIdNumber 0.
-        List<InstanceGroup> sortedInstanceGroups = stack.getInstanceGroups().stream()
-                .sorted(Comparator.comparing(InstanceGroup::getInstanceGroupType)
-                        .thenComparing(InstanceGroup::getGroupName)).collect(Collectors.toList());
-        for (InstanceGroup instanceGroup : sortedInstanceGroups) {
+        for (InstanceGroup instanceGroup : sortInstanceGroups(stack)) {
             for (InstanceMetaData instanceMetaData : instanceGroup.getAllInstanceMetaData()) {
                 instanceMetaData.setPrivateId(privateIdNumber++);
                 instanceMetaData.setInstanceStatus(InstanceStatus.REQUESTED);
             }
         }
+    }
+
+    public List<InstanceGroup> sortInstanceGroups(Stack stack) {
+        //Gateway HostGroups are sorted first to start with privateIdNumber 0.
+        return stack.getInstanceGroups().stream()
+                .sorted(Comparator.comparing(InstanceGroup::getInstanceGroupType)
+                        .thenComparing(InstanceGroup::getGroupName)).collect(Collectors.toList());
     }
 
     private Stack prepareSharedServiceIfNeeded(Stack stack) {

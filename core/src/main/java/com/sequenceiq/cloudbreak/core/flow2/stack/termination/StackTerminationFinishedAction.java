@@ -4,16 +4,19 @@ import java.util.Map;
 
 import javax.inject.Inject;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import com.sequenceiq.cloudbreak.common.event.Selectable;
 import com.sequenceiq.cloudbreak.cloud.event.resource.TerminateStackResult;
+import com.sequenceiq.cloudbreak.common.event.Selectable;
 import com.sequenceiq.cloudbreak.reactor.api.event.StackEvent;
-import com.sequenceiq.cloudbreak.reactor.api.event.stack.TerminationType;
 import com.sequenceiq.cloudbreak.service.recovery.RecoveryService;
 
 @Component("StackTerminationFinishedAction")
 public class StackTerminationFinishedAction extends AbstractStackTerminationAction<TerminateStackResult> {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(StackTerminationAction.class);
 
     @Inject
     private StackTerminationService stackTerminationService;
@@ -27,12 +30,14 @@ public class StackTerminationFinishedAction extends AbstractStackTerminationActi
 
     @Override
     protected void doExecute(StackTerminationContext context, TerminateStackResult payload, Map<Object, Object> variables) {
-        boolean recovery = (boolean) variables.getOrDefault(TerminationType.RECOVERY.name(), false);
-        if (recovery) {
+//        boolean recovery = (boolean) variables.getOrDefault(TerminationType.RECOVERY.name(), false);
+//        if (recovery) {
+        if (context.getTerminationType().isRecovery()) {
+            LOGGER.debug("Recovery is in progress, skipping stack termination!");
             recoveryService.finishTeardown(context, payload);
         } else {
-            Boolean forcedTermination = (Boolean) variables.getOrDefault(TerminationType.FORCEDTERMINATION.name(), Boolean.FALSE);
-            stackTerminationService.finishStackTermination(context, payload, forcedTermination);
+//            Boolean forcedTermination = (Boolean) variables.getOrDefault(TerminationType.FORCEDTERMINATION.name(), Boolean.FALSE);
+            stackTerminationService.finishStackTermination(context, payload, context.getTerminationType().isForced());
         }
         sendEvent(context);
     }

@@ -1085,6 +1085,11 @@ public class SaltOrchestrator implements HostOrchestrator {
     }
 
     @Override
+    public void recoverDatabase(GatewayConfig primaryGateway, Set<String> target, Set<Node> allNodes, SaltConfig saltConfig, ExitCriteriaModel exitModel) throws CloudbreakOrchestratorFailedException {
+
+    }
+
+    @Override
     public void runOrchestratorState(OrchestratorStateParams stateParams) throws CloudbreakOrchestratorFailedException {
         try (SaltConnector sc = saltService.createSaltConnector(stateParams.getPrimaryGatewayConfig())) {
             StateRunner stateRunner = createStateRunner(stateParams);

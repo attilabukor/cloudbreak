@@ -62,7 +62,7 @@ freeipa:
     cache.ttl: 15
   platform.default.instanceType:
     AWS: m5.large
-    AZURE: Standard_D3_v2
+    AZURE: Standard_D4s_v3
     GCP: n1-standard-2
   platform.dnssec.validation:
     AWS: true

@@ -27,7 +27,6 @@ import com.sequenceiq.datalake.flow.datalake.recovery.event.DatalakeRecoverySucc
 import com.sequenceiq.datalake.flow.datalake.recovery.event.DatalakeRecoveryWaitRequest;
 import com.sequenceiq.datalake.service.AbstractSdxAction;
 import com.sequenceiq.datalake.service.sdx.SdxRecoveryService;
-import com.sequenceiq.datalake.service.sdx.SdxUpgradeService;
 import com.sequenceiq.datalake.service.sdx.status.SdxStatusService;
 import com.sequenceiq.flow.core.FlowEvent;
 import com.sequenceiq.flow.core.FlowParameters;
@@ -110,7 +109,7 @@ public class DatalakeUpgradeRecoveryActions {
                 sdxStatusService.setStatusForDatalakeAndNotify(
                         DatalakeStatusEnum.RUNNING,
                         ResourceEvent.DATALAKE_RECOVERY_FINISHED,
-                        "Upgrade finished",
+                        "Recovery finished",
                         payload.getResourceId());
                 sendEvent(context, DATALAKE_RECOVERY_FINALIZED_EVENT.event(), payload);
             }

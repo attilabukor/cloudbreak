@@ -13,7 +13,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -32,8 +31,6 @@ import com.sequenceiq.cloudbreak.api.endpoint.v4.stacks.base.RecoveryMode;
 import com.sequenceiq.cloudbreak.auth.ThreadBasedUserCrnProvider;
 import com.sequenceiq.cloudbreak.auth.altus.EntitlementService;
 import com.sequenceiq.cloudbreak.cloud.model.Image;
-import com.sequenceiq.cloudbreak.cloud.model.VolumeSetAttributes;
-import com.sequenceiq.cloudbreak.cluster.util.ResourceAttributeUtil;
 import com.sequenceiq.cloudbreak.common.exception.BadRequestException;
 import com.sequenceiq.cloudbreak.core.CloudbreakImageCatalogException;
 import com.sequenceiq.cloudbreak.core.CloudbreakImageNotFoundException;
@@ -56,11 +53,10 @@ import com.sequenceiq.cloudbreak.service.freeipa.FreeipaService;
 import com.sequenceiq.cloudbreak.service.hostgroup.HostGroupService;
 import com.sequenceiq.cloudbreak.service.image.ImageCatalogService;
 import com.sequenceiq.cloudbreak.service.rdsconfig.RedbeamsClientService;
-import com.sequenceiq.cloudbreak.service.resource.ResourceService;
 import com.sequenceiq.cloudbreak.service.stack.StackService;
 import com.sequenceiq.cloudbreak.structuredevent.event.CloudbreakEventService;
-import com.sequenceiq.environment.api.v1.environment.model.response.EnvironmentStatus;
 import com.sequenceiq.common.api.type.InstanceGroupType;
+import com.sequenceiq.environment.api.v1.environment.model.response.EnvironmentStatus;
 import com.sequenceiq.flow.api.model.FlowIdentifier;
 import com.sequenceiq.freeipa.api.v1.freeipa.stack.model.common.Status;
 import com.sequenceiq.redbeams.api.endpoint.v4.databaseserver.responses.DatabaseServerV4Response;
@@ -92,12 +88,6 @@ public class ClusterRepairService {
     private HostGroupService hostGroupService;
 
     @Inject
-    private ResourceService resourceService;
-
-    @Inject
-    private ResourceAttributeUtil resourceAttributeUtil;
-
-    @Inject
     private ReactorFlowManager flowManager;
 
     @Inject
@@ -117,6 +107,9 @@ public class ClusterRepairService {
 
     @Inject
     private EntitlementService entitlementService;
+
+    @Inject
+    private VolumeSetManagerService volumeSetManagerService;
 
     public FlowIdentifier repairAll(Long stackId) {
         Result<Map<HostGroupName, Set<InstanceMetaData>>, RepairValidation> repairStart =
@@ -350,17 +343,6 @@ public class ClusterRepairService {
                         .map(VolumeTemplate::getVolumeType).anyMatch(REATTACH_NOT_SUPPORTED_VOLUME_TYPES::contains));
     }
 
-    private void updateVolumesDeleteFlag(Stack stack, Predicate<Resource> resourceFilter, boolean deleteVolumes) {
-        List<Resource> volumes = resourceService.findByStackIdAndType(stack.getId(), stack.getDiskResourceType());
-        volumes = volumes.stream()
-                .filter(resourceFilter)
-                .map(volumeSet -> updateDeleteVolumesFlag(deleteVolumes, volumeSet))
-                .collect(toList());
-        List<String> volumeNames = volumes.stream().map(Resource::getResourceName).collect(toList());
-        LOGGER.info("Update delete volume flag on {} to {}", volumeNames, deleteVolumes);
-        resourceService.saveAll(volumes);
-    }
-
     private Predicate<Resource> inInstances(Set<String> instanceIds) {
         return resource -> {
             if (resource.getInstanceId() != null) {
@@ -369,15 +351,6 @@ public class ClusterRepairService {
                 return false;
             }
         };
-    }
-
-    private Resource updateDeleteVolumesFlag(boolean deleteVolumes, Resource volumeSet) {
-        Optional<VolumeSetAttributes> attributes = resourceAttributeUtil.getTypedAttributes(volumeSet, VolumeSetAttributes.class);
-        attributes.ifPresent(volumeSetAttributes -> {
-            volumeSetAttributes.setDeleteOnTermination(deleteVolumes);
-            resourceAttributeUtil.setTypedAttributes(volumeSet, volumeSetAttributes);
-        });
-        return volumeSet;
     }
 
     private void setStackStatusAndMarkDeletableVolumes(ManualClusterRepairMode repairMode, boolean deleteVolumes, Stack stack,
@@ -389,7 +362,7 @@ public class ClusterRepairService {
                     .flatMap(Collection::stream)
                     .map(InstanceMetaData::getInstanceId)
                     .collect(Collectors.toUnmodifiableSet()));
-            updateVolumesDeleteFlag(stack, updateVolumesPredicate, deleteVolumes);
+            volumeSetManagerService.updateVolumesDeleteFlag(stack, updateVolumesPredicate, deleteVolumes);
             LOGGER.info("Update stack status to REPAIR_IN_PROGRESS");
             stackUpdater.updateStackStatus(stack.getId(), DetailedStackStatus.REPAIR_IN_PROGRESS);
         }
