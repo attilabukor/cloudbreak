@@ -12,6 +12,7 @@ import org.testng.ITestResult;
 import org.testng.annotations.BeforeMethod;
 
 import com.sequenceiq.cloudbreak.api.endpoint.v4.stacks.base.InstanceStatus;
+import com.sequenceiq.common.api.type.Tunnel;
 import com.sequenceiq.environment.api.v1.environment.model.EnvironmentNetworkMockParams;
 import com.sequenceiq.environment.api.v1.environment.model.request.EnvironmentNetworkRequest;
 import com.sequenceiq.environment.api.v1.environment.model.response.EnvironmentStatus;
@@ -223,6 +224,7 @@ public abstract class AbstractIntegrationTest extends AbstractMinimalTest {
                 .given(EnvironmentTestDto.class)
                 .withNetwork()
                 .withTelemetry("telemetry")
+                .withTunnel(Tunnel.CLUSTER_PROXY)
                 .withCreateFreeIpa(Boolean.TRUE)
                 .withFreeIpaImage(commonCloudProperties().getImageValidation().getFreeIpaImageCatalog(),
                         commonCloudProperties().getImageValidation().getFreeIpaImageUuid())

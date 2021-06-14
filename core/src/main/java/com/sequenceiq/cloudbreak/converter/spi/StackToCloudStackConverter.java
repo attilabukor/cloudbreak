@@ -425,6 +425,7 @@ public class StackToCloudStackConverter {
         putIfPresent(params, CloudInstance.SUBNET_ID, getIfNotNull(instanceMetaData, InstanceMetaData::getSubnetId));
         putIfPresent(params, CloudInstance.AVAILABILITY_ZONE, getIfNotNull(instanceMetaData, InstanceMetaData::getAvailabilityZone));
         putIfPresent(params, CloudInstance.INSTANCE_NAME, getIfNotNull(instanceMetaData, InstanceMetaData::getInstanceName));
+        putIfPresent(params, CloudInstance.FQDN, getIfNotNull(instanceMetaData, InstanceMetaData::getDiscoveryFQDN));
         Optional<AzureResourceGroup> resourceGroupOptional = getAzureResourceGroup(environmentCrn, platform);
         if (resourceGroupOptional.isPresent() && !ResourceGroupUsage.MULTIPLE.equals(resourceGroupOptional.get().getResourceGroupUsage())) {
             AzureResourceGroup resourceGroup = resourceGroupOptional.get();

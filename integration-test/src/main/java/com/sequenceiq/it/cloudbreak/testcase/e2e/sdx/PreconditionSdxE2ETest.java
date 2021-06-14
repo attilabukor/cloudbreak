@@ -30,10 +30,10 @@ public class PreconditionSdxE2ETest extends AbstractE2ETest {
     private static final String CREATE_FILE_RECIPE = "classpath:/recipes/post-install.sh";
 
     private final Map<String, InstanceStatus> instancesDeletedOnProviderSide = InstanceUtil.getInstanceStatuses(
-            InstanceStatus.DELETED_ON_PROVIDER_SIDE, MASTER, IDBROKER);
+            InstanceStatus.DELETED_ON_PROVIDER_SIDE, MASTER.getName(), IDBROKER.getName());
 
     private final Map<String, InstanceStatus> instancesStopped = InstanceUtil.getInstanceStatuses(
-            InstanceStatus.STOPPED, MASTER, IDBROKER);
+            InstanceStatus.STOPPED, MASTER.getName(), IDBROKER.getName());
 
     @Inject
     private SdxTestClient sdxTestClient;

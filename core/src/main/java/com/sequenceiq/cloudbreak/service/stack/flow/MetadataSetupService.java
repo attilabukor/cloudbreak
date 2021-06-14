@@ -122,6 +122,11 @@ public class MetadataSetupService {
                     .stream()
                     .collect(Collectors.toMap(InstanceGroup::getGroupName, Function.identity()));
 
+            Optional<InstanceMetaData> terminatedPrimaryGwWhichShouldBeRestored = Optional.empty();
+            if (!primaryIgSelected) {
+                terminatedPrimaryGwWhichShouldBeRestored = instanceMetaDataService.getLastTerminatedPrimaryGatewayInstanceMetadata(stack.getId());
+            }
+
             for (CloudVmMetaDataStatus cloudVmMetaDataStatus : cloudVmMetaDataStatusList) {
                 CloudInstance cloudInstance = cloudVmMetaDataStatus.getCloudVmInstanceStatus().getCloudInstance();
                 CloudInstanceMetaData md = cloudVmMetaDataStatus.getMetaData();
@@ -153,14 +158,24 @@ public class MetadataSetupService {
                 if (instanceMetaDataEntry.getInstanceMetadataType() == null) {
                     if (ig != null) {
                         if (InstanceGroupType.GATEWAY.equals(ig.getInstanceGroupType())) {
-                            if (!primaryIgSelected) {
-                                primaryIgSelected = true;
-                                instanceMetaDataEntry.setInstanceMetadataType(InstanceMetadataType.GATEWAY_PRIMARY);
-                                instanceMetaDataEntry.setServer(Boolean.TRUE);
-                                LOGGER.info("Primary gateway is not selected, let's select this instance: {}", instanceMetaDataEntry.getInstanceId());
+                            if (terminatedPrimaryGwWhichShouldBeRestored.isPresent()) {
+                                if (terminatedPrimaryGwWhichShouldBeRestored.get().getDiscoveryFQDN().equals(instanceMetaDataEntry.getDiscoveryFQDN())) {
+                                    instanceMetaDataEntry.setInstanceMetadataType(InstanceMetadataType.GATEWAY_PRIMARY);
+                                    instanceMetaDataEntry.setServer(Boolean.TRUE);
+                                } else {
+                                    LOGGER.info("Primary gateway is another instance not this one: {}", instanceMetaDataEntry.getInstanceId());
+                                    instanceMetaDataEntry.setInstanceMetadataType(InstanceMetadataType.GATEWAY);
+                                }
                             } else {
-                                LOGGER.info("Primary gateway was selected");
-                                instanceMetaDataEntry.setInstanceMetadataType(InstanceMetadataType.GATEWAY);
+                                if (!primaryIgSelected) {
+                                    primaryIgSelected = true;
+                                    instanceMetaDataEntry.setInstanceMetadataType(InstanceMetadataType.GATEWAY_PRIMARY);
+                                    instanceMetaDataEntry.setServer(Boolean.TRUE);
+                                    LOGGER.info("Primary gateway is not selected, let's select this instance: {}", instanceMetaDataEntry.getInstanceId());
+                                } else {
+                                    LOGGER.info("Primary gateway was selected");
+                                    instanceMetaDataEntry.setInstanceMetadataType(InstanceMetadataType.GATEWAY);
+                                }
                             }
                         } else {
                             LOGGER.info("Instance is a core instance: {}", instanceMetaDataEntry.getInstanceId());

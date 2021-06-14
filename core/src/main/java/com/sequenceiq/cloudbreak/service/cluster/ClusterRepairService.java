@@ -179,6 +179,8 @@ public class ClusterRepairService {
         } else if (isHAClusterAndRepairNotAllowed(removeOnly, stack)) {
             repairStartResult = Result.error(RepairValidation
                     .of("Repair is not supported when the cluster uses cluster proxy and has multiple gateway nodes. This will be fixed in future releases."));
+        } else if (isPrimaryGWUnhealthyAndItIsNotSelected(repairMode, selectedParts, stack)) {
+            repairStartResult = Result.error(RepairValidation.of("Primary gateway node is unhealthy, it must be repaired first"));
         } else {
             Map<HostGroupName, Set<InstanceMetaData>> repairableNodes = selectRepairableNodes(getInstanceSelectors(repairMode, selectedParts), stack);
             RepairValidation validationBySelectedNodes = validateSelectedNodes(stack, repairableNodes, reattach);
@@ -190,6 +192,21 @@ public class ClusterRepairService {
             }
         }
         return repairStartResult;
+    }
+
+    private boolean isPrimaryGWUnhealthyAndItIsNotSelected(ManualClusterRepairMode repairMode, Set<String> selectedParts, Stack stack) {
+        if (stack.getPrimaryGatewayInstance() == null) {
+            return false;
+        }
+        if (ManualClusterRepairMode.HOST_GROUP.equals(repairMode)) {
+            return stack.getPrimaryGatewayInstance().isUnhealthy() &&
+                    !selectedParts.contains(stack.getPrimaryGatewayInstance().getInstanceGroup().getGroupName());
+        } else if (ManualClusterRepairMode.NODE_ID.equals(repairMode)) {
+            return stack.getPrimaryGatewayInstance().isUnhealthy() &&
+                    !selectedParts.contains(stack.getPrimaryGatewayInstance().getInstanceId());
+        } else {
+            return false;
+        }
     }
 
     private boolean isHAClusterAndRepairNotAllowed(boolean removeOnly, Stack stack) {

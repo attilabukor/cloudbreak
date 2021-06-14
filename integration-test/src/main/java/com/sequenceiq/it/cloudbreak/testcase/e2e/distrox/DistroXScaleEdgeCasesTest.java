@@ -53,7 +53,7 @@ public class DistroXScaleEdgeCasesTest extends AbstractE2ETest {
                 .then((tc, testDto, client) -> {
                     List<String> instancesToDelete = distroxUtil.getInstanceIds(testDto, client, WORKER.getName()).stream()
                             .limit(1).collect(Collectors.toList());
-                    testContext.getCloudProvider().getCloudFunctionality().deleteInstances(instancesToDelete);
+                    testContext.getCloudProvider().getCloudFunctionality().deleteInstances(testDto.getName(), instancesToDelete);
                     testDto.setRemovableInstanceId(instancesToDelete.iterator().next());
                     return testDto;
                 })

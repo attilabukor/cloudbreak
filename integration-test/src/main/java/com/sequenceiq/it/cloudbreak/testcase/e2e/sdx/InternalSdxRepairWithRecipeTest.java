@@ -92,11 +92,11 @@ public class InternalSdxRepairWithRecipeTest extends PreconditionSdxE2ETest {
                 .then((tc, testDto, client) -> {
                     List<String> instanceIdsToStop = sdxUtil.getInstanceIds(testDto, client, MASTER.getName());
                     instanceIdsToStop.addAll(sdxUtil.getInstanceIds(testDto, client, IDBROKER.getName()));
-                    getCloudFunctionality(tc).stopInstances(instanceIdsToStop);
+                    getCloudFunctionality(tc).stopInstances(testDto.getName(), instanceIdsToStop);
                     return testDto;
                 })
                 .awaitForInstance(getSdxInstancesStoppedState())
-                .when(sdxTestClient.repairInternal(), key(sdxInternal))
+                .when(sdxTestClient.repairInternal(MASTER.getName(), IDBROKER.getName()), key(sdxInternal))
                 .await(SdxClusterStatusResponse.REPAIR_IN_PROGRESS, key(sdxInternal).withWaitForFlow(Boolean.FALSE))
                 .await(SdxClusterStatusResponse.RUNNING, key(sdxInternal))
                 .awaitForInstance(getSdxInstancesHealthyState())

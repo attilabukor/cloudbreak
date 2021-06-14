@@ -1,6 +1,5 @@
 package com.sequenceiq.it.cloudbreak.util;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -16,25 +15,23 @@ public class InstanceUtil {
     }
 
     public static Map<String, InstanceStatus> getHealthyDistroXInstances() {
-        return getInstanceStatuses(InstanceStatus.SERVICES_HEALTHY, HostGroupType.MASTER, HostGroupType.COMPUTE, HostGroupType.WORKER);
+        return getInstanceStatuses(InstanceStatus.SERVICES_HEALTHY, HostGroupType.MASTER.getName(), HostGroupType.COMPUTE.getName(),
+                HostGroupType.WORKER.getName());
     }
 
     public static Map<String, InstanceStatus> getHealthySDXInstances() {
-        return getInstanceStatuses(InstanceStatus.SERVICES_HEALTHY, HostGroupType.MASTER, HostGroupType.IDBROKER);
+        return getInstanceStatuses(InstanceStatus.SERVICES_HEALTHY, HostGroupType.MASTER.getName(), HostGroupType.IDBROKER.getName());
     }
 
-    public static Map<String, InstanceStatus> getInstanceStatuses(InstanceStatus status, HostGroupType... hostGroupTypes) {
-        return List.of(hostGroupTypes).stream()
-                .collect(Collectors.toMap(hostGroupType -> hostGroupType.getName(), hostGroupType -> status));
+    public static Map<String, InstanceStatus> getInstanceStatuses(InstanceStatus status, String... hostgroups) {
+        return List.of(hostgroups).stream()
+                .collect(Collectors.toMap(hostgroup -> hostgroup, hostGroupType -> status));
     }
 
     public static List<String> getInstanceIds(List<InstanceGroupV4Response> instanceGroupV4Responses, String hostGroupName) {
-        List<String> instanceIds = new ArrayList<>();
         InstanceGroupV4Response instanceGroupV4Response = instanceGroupV4Responses.stream().filter(instanceGroup ->
                 instanceGroup.getName().equals(hostGroupName)).findFirst().orElse(null);
-        InstanceMetaDataV4Response instanceMetaDataV4Response = Objects.requireNonNull(instanceGroupV4Response)
-                .getMetadata().stream().findFirst().orElse(null);
-        instanceIds.add(Objects.requireNonNull(instanceMetaDataV4Response).getInstanceId());
-        return instanceIds;
+        return Objects.requireNonNull(instanceGroupV4Response)
+                .getMetadata().stream().map(InstanceMetaDataV4Response::getInstanceId).collect(Collectors.toList());
     }
 }

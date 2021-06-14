@@ -24,6 +24,8 @@ public class CloudInstance extends DynamicModel {
 
     public static final String DISCOVERY_NAME = "DiscoveryName";
 
+    public static final String FQDN = "FQDN";
+
     /**
      * Key of the optional dynamic parameter denoting the ID of the subnet (in a cloud platform specific format) the cloud instance is deployed in.
      * May be absent if the subnet assignment is not (yet) known.

@@ -14,6 +14,7 @@ import com.sequenceiq.cloudbreak.cloud.model.CloudResource;
 import com.sequenceiq.cloudbreak.cloud.model.Group;
 import com.sequenceiq.cloudbreak.cloud.model.InstanceTemplate;
 import com.sequenceiq.cloudbreak.cloud.template.context.ResourceBuilderContext;
+import com.sequenceiq.cloudbreak.cloud.template.context.VolumeMatcher;
 import com.sequenceiq.common.api.type.ResourceType;
 
 @Service
@@ -43,25 +44,12 @@ public class AwsContextService {
 
     public void addResourcesToContext(List<CloudResource> resources, ResourceBuilderContext context, List<Group> groups) {
         groups.forEach(group -> {
-            List<Long> ids = group.getInstances().stream()
+            List<CloudInstance> instancesWithoutInstanceId = group.getInstances().stream()
                     .filter(instance -> Objects.isNull(instance.getInstanceId()))
-                    .map(CloudInstance::getTemplate).map(InstanceTemplate::getPrivateId).collect(Collectors.toList());
+                    .collect(Collectors.toList());
             List<CloudResource> groupInstances = getResourcesOfTypeInGroup(resources, group, ResourceType.AWS_INSTANCE);
             List<CloudResource> groupVolumeSets = getResourcesOfTypeInGroup(resources, group, ResourceType.AWS_VOLUMESET);
-            for (int i = 0; i < ids.size(); i++) {
-                if (i < groupInstances.size()) {
-                    Long privateId = ids.get(i);
-                    CloudResource instanceResource = groupInstances.get(i);
-                    if (i > groupVolumeSets.size() - 1) {
-                        context.addComputeResources(privateId, List.of(instanceResource));
-                    } else {
-                        CloudResource volumesetResource = groupVolumeSets.get(i);
-                        LOGGER.debug("Adding instance and volume set to context under private id: {}. "
-                                + "Instance: {}, Volume Set: {}", privateId, instanceResource, volumesetResource);
-                        context.addComputeResources(privateId, List.of(instanceResource, volumesetResource));
-                    }
-                }
-            }
+            VolumeMatcher.addVolumeResourcesToContext(instancesWithoutInstanceId, groupInstances, groupVolumeSets, context);
         });
     }
 

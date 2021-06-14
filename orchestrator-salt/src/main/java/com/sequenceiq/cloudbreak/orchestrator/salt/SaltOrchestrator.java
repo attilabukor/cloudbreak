@@ -949,7 +949,7 @@ public class SaltOrchestrator implements HostOrchestrator {
                 Set<String> allHostnames = responsiveNodesUnderStopping.stream().map(Node::getHostname).collect(Collectors.toSet());
                 runSyncAll(sc, allHostnames, responsiveNodesUnderStopping, exitCriteriaModel);
 
-                refreshPillars(gatewayConfig, responsiveNodes, exitCriteriaModel, sc);
+                refreshPillars(gatewayConfig, allNodes, exitCriteriaModel, sc);
                 runNewService(sc, new HighStateAllRunner(allHostnames, responsiveNodesUnderStopping), exitCriteriaModel, maxRetry, true);
 
                 saltCommandRunner.runModifyGrainCommand(sc, new GrainRemoveRunner(targetHostnames, responsiveNodesUnderStopping, "roles",

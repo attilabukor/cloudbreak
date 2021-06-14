@@ -62,18 +62,18 @@ public class DistroXRepairTests extends AbstractE2ETest {
                 .then((tc, testDto, client) -> {
                     CloudFunctionality cloudFunctionality = tc.getCloudProvider().getCloudFunctionality();
                     List<String> instancesToDelete = distroxUtil.getInstanceIds(testDto, client, MASTER.getName());
-                    expectedVolumeIds.addAll(cloudFunctionality.listInstanceVolumeIds(instancesToDelete));
-                    cloudFunctionality.deleteInstances(instancesToDelete);
+                    expectedVolumeIds.addAll(cloudFunctionality.listInstanceVolumeIds(testDto.getName(), instancesToDelete));
+                    cloudFunctionality.deleteInstances(testDto.getName(), instancesToDelete);
                     return testDto;
                 })
-                .awaitForInstance(InstanceUtil.getInstanceStatuses(InstanceStatus.DELETED_ON_PROVIDER_SIDE, MASTER))
+                .awaitForInstance(InstanceUtil.getInstanceStatuses(InstanceStatus.DELETED_ON_PROVIDER_SIDE, MASTER.getName()))
                 .when(distroXTestClient.repair(MASTER), key(distrox))
                 .await(STACK_AVAILABLE, key(distrox))
                 .awaitForInstance(InstanceUtil.getHealthyDistroXInstances())
                 .then((tc, testDto, client) -> {
                     CloudFunctionality cloudFunctionality = tc.getCloudProvider().getCloudFunctionality();
                     List<String> instanceIds = distroxUtil.getInstanceIds(testDto, client, MASTER.getName());
-                    actualVolumeIds.addAll(cloudFunctionality.listInstanceVolumeIds(instanceIds));
+                    actualVolumeIds.addAll(cloudFunctionality.listInstanceVolumeIds(testDto.getName(), instanceIds));
                     return testDto;
                 })
                 .then((tc, testDto, client) -> VolumeUtils.compareVolumeIdsAfterRepair(testDto, actualVolumeIds, expectedVolumeIds))
