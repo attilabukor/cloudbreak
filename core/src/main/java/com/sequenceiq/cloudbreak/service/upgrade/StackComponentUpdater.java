@@ -46,6 +46,26 @@ public class StackComponentUpdater {
         return targetComponents;
     }
 
+    /**
+     * Would persist to db a set of components. Is not yet called from anywhere.
+     * TODO: update also the clusterComponent table
+     *
+     * @param stack
+     * @param updatedComponents set of components that were updated
+     * @param userData
+     * @throws CloudbreakImageNotFoundException
+     * @throws CloudbreakImageCatalogException
+     */
+    public void updateActiveComponentsByStackId(Stack stack, Set<Component> updatedComponents, Map<InstanceGroupType, String> userData)
+            throws CloudbreakImageNotFoundException, CloudbreakImageCatalogException {
+        Set<Component> componentsFromDb = componentConfigProviderService.getComponentsByStackId(stack.getId());
+        componentsFromDb.forEach(component -> setComponentIdIfAlreadyExists(updatedComponents, component));
+        componentConfigProviderService.store(updatedComponents);
+        LOGGER.info("Updated components:" + updatedComponents);
+        removeUnusedComponents(componentsFromDb, updatedComponents);
+//        return targetComponents;
+    }
+
     private Predicate<Component> filterDiffBetweenComponentsFromImageAndDatabase(Set<Component> targetComponents) {
         return component -> targetComponents.stream().noneMatch(componentFromImage -> component.getName().equals(componentFromImage.getName()));
     }

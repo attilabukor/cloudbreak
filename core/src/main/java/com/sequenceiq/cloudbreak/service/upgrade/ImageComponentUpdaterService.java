@@ -33,6 +33,12 @@ public class ImageComponentUpdaterService {
     @Inject
     private UpgradeImageInfoFactory upgradeImageInfoFactory;
 
+    /**
+     * TODO: This also updates the image component. Is it needed before the change image step?
+     * @param imageId
+     * @param stackId
+     * @return
+     */
     public UpgradeImageInfo updateForUpgrade(String imageId, Long stackId) {
         Stack stack = stackService.getById(stackId);
         try {

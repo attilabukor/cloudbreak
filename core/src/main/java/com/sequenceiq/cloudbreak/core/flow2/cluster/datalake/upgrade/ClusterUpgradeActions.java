@@ -2,6 +2,7 @@ package com.sequenceiq.cloudbreak.core.flow2.cluster.datalake.upgrade;
 
 import static com.sequenceiq.cloudbreak.core.flow2.cluster.datalake.upgrade.ClusterUpgradeEvent.CLUSTER_UPGRADE_FAIL_HANDLED_EVENT;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -15,6 +16,7 @@ import org.springframework.statemachine.StateContext;
 import org.springframework.statemachine.action.Action;
 
 import com.sequenceiq.cloudbreak.api.endpoint.v4.common.DetailedStackStatus;
+import com.sequenceiq.cloudbreak.cloud.model.ClouderaManagerProduct;
 import com.sequenceiq.cloudbreak.cloud.model.catalog.Image;
 import com.sequenceiq.cloudbreak.cloud.model.catalog.StackDetails;
 import com.sequenceiq.cloudbreak.common.event.Selectable;
@@ -29,10 +31,12 @@ import com.sequenceiq.cloudbreak.reactor.api.event.cluster.upgrade.ClusterUpgrad
 import com.sequenceiq.cloudbreak.reactor.api.event.cluster.upgrade.ClusterUpgradeInitSuccess;
 import com.sequenceiq.cloudbreak.reactor.api.event.cluster.upgrade.ClusterUpgradeRequest;
 import com.sequenceiq.cloudbreak.reactor.api.event.cluster.upgrade.ClusterUpgradeSuccess;
+import com.sequenceiq.cloudbreak.service.image.ImageService;
 import com.sequenceiq.cloudbreak.service.image.StatedImage;
 import com.sequenceiq.cloudbreak.service.stack.StackService;
 import com.sequenceiq.cloudbreak.service.upgrade.ImageComponentUpdaterService;
 import com.sequenceiq.cloudbreak.service.upgrade.UpgradeImageInfo;
+import com.sequenceiq.cloudbreak.service.upgrade.sync.CmVersionService;
 import com.sequenceiq.flow.core.Flow;
 import com.sequenceiq.flow.core.FlowEvent;
 import com.sequenceiq.flow.core.FlowParameters;
@@ -185,6 +189,12 @@ public class ClusterUpgradeActions {
     public Action<?, ?> clusterUpgradeFailedAction() {
         return new AbstractClusterUpgradeAction<>(ClusterUpgradeFailedEvent.class) {
 
+            @Inject
+            private CmVersionService cmVersionService;
+
+            @Inject
+            private ImageService imageService;
+
             @Override
             protected ClusterUpgradeContext createFlowContext(FlowParameters flowParameters, StateContext<FlowState, FlowEvent> stateContext,
                     ClusterUpgradeFailedEvent payload) {
@@ -197,6 +207,12 @@ public class ClusterUpgradeActions {
 
             @Override
             protected void doExecute(ClusterUpgradeContext context, ClusterUpgradeFailedEvent payload, Map<Object, Object> variables) {
+                StatedImage currentImage = getCurrentImage(variables);
+                StatedImage targetImage = getTargetImage(variables);
+                List<ClouderaManagerProduct> allProducts = imageService.getPreWarmParcels(currentImage);
+                allProducts.addAll(imageService.getPreWarmParcels(targetImage));
+                List<ClouderaManagerProduct> installedProducts = cmVersionService.getInstalledProducts(context.getStackId(), allProducts);
+                LOGGER.debug("Products on the CM server: {}", installedProducts);
                 clusterUpgradeService.handleUpgradeClusterFailure(context.getStackId(), payload.getException().getMessage(), payload.getDetailedStatus());
                 sendEvent(context, CLUSTER_UPGRADE_FAIL_HANDLED_EVENT.event(), payload);
             }

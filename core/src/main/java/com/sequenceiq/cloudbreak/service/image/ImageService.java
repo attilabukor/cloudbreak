@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -37,6 +38,7 @@ import com.sequenceiq.cloudbreak.cloud.model.catalog.StackDetails;
 import com.sequenceiq.cloudbreak.cloud.model.component.StackRepoDetails;
 import com.sequenceiq.cloudbreak.cloud.model.component.StackType;
 import com.sequenceiq.cloudbreak.cmtemplate.utils.BlueprintUtils;
+import com.sequenceiq.cloudbreak.common.exception.NotFoundException;
 import com.sequenceiq.cloudbreak.common.json.Json;
 import com.sequenceiq.cloudbreak.common.json.JsonUtil;
 import com.sequenceiq.cloudbreak.common.type.ComponentType;
@@ -46,7 +48,6 @@ import com.sequenceiq.cloudbreak.domain.Blueprint;
 import com.sequenceiq.cloudbreak.domain.ImageCatalog;
 import com.sequenceiq.cloudbreak.domain.stack.Component;
 import com.sequenceiq.cloudbreak.domain.stack.Stack;
-import com.sequenceiq.cloudbreak.common.exception.NotFoundException;
 import com.sequenceiq.cloudbreak.service.ComponentConfigProviderService;
 import com.sequenceiq.cloudbreak.service.StackMatrixService;
 import com.sequenceiq.cloudbreak.workspace.model.User;
@@ -80,6 +81,9 @@ public class ImageService {
 
     @Inject
     private CloudPlatformConnectors cloudPlatformConnectors;
+
+    @Inject
+    private ClouderaManagerProductConverter clouderaManagerProductConverter;
 
     public Image getImage(Long stackId) throws CloudbreakImageNotFoundException {
         return componentConfigProviderService.getImage(stackId);
@@ -234,11 +238,27 @@ public class ImageService {
             components.add(stackRepoComponent);
             components.add(getClusterManagerComponent(stack, catalogBasedImage, stackType));
         }
-        catalogBasedImage.getPreWarmParcels().forEach(parcel -> {
-            Optional<ClouderaManagerProduct> product = preWarmParcelParser.parseProductFromParcel(parcel, catalogBasedImage.getPreWarmCsd());
-            product.ifPresent(p -> components.add(new Component(CDH_PRODUCT_DETAILS, p.getName(), new Json(p), stack)));
-        });
+        components.addAll(
+                clouderaManagerProductConverter.clouderaManagerProductListToComponent(getPreWarmParcels(statedImage), stack)
+        );
+//        catalogBasedImage.getPreWarmParcels().forEach(parcel -> {
+//            Optional<ClouderaManagerProduct> product = preWarmParcelParser.parseProductFromParcel(parcel, catalogBasedImage.getPreWarmCsd());
+//            product.ifPresent(p -> components.add(new Component(CDH_PRODUCT_DETAILS, p.getName(), new Json(p), stack)));
+//        });
         return components;
+    }
+
+    /**
+     * Will return the list of parcels from the image, except for the CDH parcel
+     * @param statedImage an image from the image catalog
+     * @return
+     */
+    public List<ClouderaManagerProduct> getPreWarmParcels(StatedImage statedImage) {
+        return statedImage.getImage().getPreWarmParcels().stream()
+                .map(p -> preWarmParcelParser.parseProductFromParcel(p, statedImage.getImage().getPreWarmCsd()))
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .collect(Collectors.toList());
     }
 
     private Component getStackComponent(Stack stack, StackDetails stackDetails, StackType stackType, String osType) {
