@@ -220,6 +220,9 @@ public interface StackRepository extends WorkspaceResourceRepository<Stack, Long
     @Query("SELECT s.resourceCrn as resourceCrn, s.environmentCrn as environmentCrn FROM Stack s WHERE s.resourceCrn IN (:crns)")
     List<StackCrnView> findAllByResourceCrn(@Param("crns") Set<String> crn);
 
+    @Query("SELECT s.id as id, s.name as name, s.resourceCrn as crn FROM Stack s WHERE s.datalakeCrn  = :crn")
+    Set<StackIdView> findByDatalakeCrn(@Param("crn") String crn);
+
     @Query("SELECT VALUE(s.parameters) FROM Stack s WHERE s.id = :stackId AND KEY(s.parameters) = :ttlKey")
     String findTimeToLiveValueForSTack(@Param("stackId") Long stackId, @Param("ttlKey") String ttl);
 
@@ -256,6 +259,7 @@ public interface StackRepository extends WorkspaceResourceRepository<Stack, Long
             + "c.status as clusterStatus, "
             + "s.created as created, "
             + "s.datalakeResourceId as sharedClusterId, "
+            + "s.datalakeCrn as datalakeCrn, "
             + "b.tags as blueprintTags,"
             + "c.id as clusterId, "
             + "s.platformVariant as platformVariant, "
@@ -295,6 +299,7 @@ public interface StackRepository extends WorkspaceResourceRepository<Stack, Long
             + "c.status as clusterStatus, "
             + "s.created as created, "
             + "s.datalakeResourceId as sharedClusterId, "
+            + "s.datalakeCrn as datalakeCrn, "
             + "b.tags as blueprintTags,"
             + "c.id as clusterId, "
             + "s.platformVariant as platformVariant, "
