@@ -72,6 +72,12 @@ public interface FlowLogRepository extends CrudRepository<FlowLog, Long> {
 
     List<FlowLog> findAllByResourceIdOrderByCreatedDesc(Long resourceId, Pageable page);
 
+    @Query(value = "SELECT f.* FROM flowlog f " +
+            "RIGHT JOIN (SELECT * FROM flowlog WHERE resourceId = :resourceId ORDER BY created DESC LIMIT 1) as fl " +
+            "ON (f.flowchainid = fl.flowchainid and fl.flowchainid is not null) or (f.flowid = fl.flowid and fl.flowid is not null) " +
+            "ORDER BY f.created DESC", nativeQuery = true)
+    List<FlowLog> findAllByResourceIdOrderByCreatedDescWithLastFlowChainIdOrFlowId(@Param("resourceId") Long resourceId);
+
     @Query("SELECT COUNT(fl.id) > 0 FROM FlowLog fl WHERE fl.resourceId = :resourceId AND fl.stateStatus = :status")
     Boolean findAnyByStackIdAndStateStatus(@Param("resourceId") Long resourceId, @Param("status") StateStatus status);
 }

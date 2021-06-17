@@ -40,9 +40,10 @@ public class FlowChainHandler implements Consumer<Event<? extends Payload>> {
         String parentFlowChainId = getFlowChainId(event);
         String flowTriggerUserCrn = getFlowTriggerUserCrn(event);
         FlowEventChainFactory<Payload> flowEventChainFactory = flowChainConfigMap.get(key);
+        String flowOperationType = flowEventChainFactory.getFlowOperationType().name();
         String flowChainId = UUID.randomUUID().toString();
         flowChains.putFlowChain(flowChainId, parentFlowChainId, flowEventChainFactory.createFlowTriggerEventQueue(event.getData()));
-        flowChains.triggerNextFlow(flowChainId, flowTriggerUserCrn, Map.of());
+        flowChains.triggerNextFlow(flowChainId, flowTriggerUserCrn, Map.of(), flowOperationType);
     }
 
     public void restoreFlowChain(String flowChainId) {

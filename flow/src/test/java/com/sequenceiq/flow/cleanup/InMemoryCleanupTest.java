@@ -22,6 +22,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.sequenceiq.cloudbreak.cloud.scheduler.PollGroup;
 import com.sequenceiq.cloudbreak.cloud.store.InMemoryStateStore;
+import com.sequenceiq.flow.api.model.operation.OperationType;
 import com.sequenceiq.flow.core.FlowRegister;
 import com.sequenceiq.flow.core.chain.FlowChains;
 import com.sequenceiq.flow.core.config.FlowConfiguration;
@@ -78,7 +79,8 @@ class InMemoryCleanupTest {
         long stackId = random.nextInt(5000) + from;
         for (int i = 0; i < flowCount; i++) {
             for (int j = 0; j < random.nextInt(99) + 1; j++) {
-                FlowLog flowLog = new FlowLog(stackId + i, "" + flowId + i, "RUNNING", false, StateStatus.PENDING);
+                FlowLog flowLog = new FlowLog(stackId + i, "" + flowId + i, "RUNNING",
+                        false, StateStatus.PENDING, OperationType.UNKNOWN);
                 flowLog.setFlowType(FlowConfiguration.class);
                 flows.add(flowLog);
             }
