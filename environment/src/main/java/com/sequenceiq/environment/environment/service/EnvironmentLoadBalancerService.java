@@ -1,8 +1,12 @@
 package com.sequenceiq.environment.environment.service;
 
 import static com.sequenceiq.cloudbreak.common.mappable.CloudPlatform.AWS;
+import static com.sequenceiq.environment.environment.service.LoadBalancerPollerService.LOAD_BALANCER_UPDATE_FAILED_STATE;
 import static java.util.Objects.requireNonNull;
 
+import java.util.List;
+
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -13,11 +17,16 @@ import com.sequenceiq.cloudbreak.auth.altus.EntitlementService;
 import com.sequenceiq.cloudbreak.common.exception.BadRequestException;
 import com.sequenceiq.cloudbreak.common.exception.NotFoundException;
 import com.sequenceiq.common.api.type.PublicEndpointAccessGateway;
+import com.sequenceiq.environment.api.v1.environment.model.base.LoadBalancerUpdateStatus;
+import com.sequenceiq.environment.api.v1.environment.model.response.EnvironmentLoadBalancerUpdateResponse;
 import com.sequenceiq.environment.environment.domain.Environment;
 import com.sequenceiq.environment.environment.dto.EnvironmentDto;
 import com.sequenceiq.environment.environment.dto.EnvironmentLoadBalancerDto;
 import com.sequenceiq.environment.environment.flow.EnvironmentReactorFlowManager;
 import com.sequenceiq.environment.network.service.LoadBalancerEntitlementService;
+import com.sequenceiq.flow.api.model.FlowIdentifier;
+import com.sequenceiq.flow.api.model.FlowLogResponse;
+import com.sequenceiq.flow.service.FlowService;
 
 @Service
 public class EnvironmentLoadBalancerService {
@@ -43,9 +52,14 @@ public class EnvironmentLoadBalancerService {
         this.loadBalancerEntitlementService = loadBalancerEntitlementService;
     }
 
-    public void updateLoadBalancerInEnvironmentAndStacks(EnvironmentDto environmentDto, EnvironmentLoadBalancerDto environmentLbDto) {
+    public EnvironmentLoadBalancerUpdateResponse updateLoadBalancerInEnvironmentAndStacks(EnvironmentDto environmentDto,
+            EnvironmentLoadBalancerDto environmentLbDto) {
         requireNonNull(environmentDto);
         requireNonNull(environmentLbDto);
+
+        EnvironmentLoadBalancerUpdateResponse response = new EnvironmentLoadBalancerUpdateResponse();
+        response.setRequestedPublicEndpointGateway(environmentLbDto.getEndpointAccessGateway());
+        response.setRequestedEndpointSubnetIds(environmentLbDto.getEndpointGatewaySubnetIds());
 
         loadBalancerEntitlementService.validateNetworkForEndpointGateway(environmentDto.getCloudPlatform(), environmentDto.getName(),
             environmentLbDto.getEndpointAccessGateway());
@@ -64,9 +78,18 @@ public class EnvironmentLoadBalancerService {
                         environmentDto.getResourceCrn())));
 
         String userCrn = ThreadBasedUserCrnProvider.getUserCrn();
-        reactorFlowManager
+        Optional<FlowIdentifier> flowIdentifier = reactorFlowManager
             .triggerLoadBalancerUpdateFlow(environmentDto, environment.getId(), environment.getName(), environment.getResourceCrn(),
                 environmentLbDto.getEndpointAccessGateway(), environmentLbDto.getEndpointGatewaySubnetIds(), userCrn);
+
+        if (flowIdentifier.isPresent()) {
+            response.setFlowId(flowIdentifier.get());
+            response.setStatus(LoadBalancerUpdateStatus.IN_PROGRESS);
+        } else {
+            throw new IllegalStateException("Unable to initiate update flow.");
+        }
+
+        return response;
     }
 
     private boolean isLoadBalancerEnabledForDatalake(String accountId, String cloudPlatform, PublicEndpointAccessGateway endpointEnum) {
@@ -77,5 +100,9 @@ public class EnvironmentLoadBalancerService {
 
     private boolean isLoadBalancerEntitlementRequiredForCloudProvider(String cloudPlatform) {
         return !(AWS.equalsIgnoreCase(cloudPlatform));
+    }
+
+    private boolean hasFlowFailed(List<FlowLogResponse> flowLogs) {
+        return flowLogs.stream().map(FlowLogResponse::getCurrentState).anyMatch(LOAD_BALANCER_UPDATE_FAILED_STATE::equals);
     }
 }
