@@ -20,6 +20,7 @@ import com.google.api.services.compute.model.InstanceGroupsListInstancesRequest;
 import com.google.api.services.compute.model.InstanceGroupsRemoveInstancesRequest;
 import com.google.api.services.compute.model.InstanceReference;
 import com.google.api.services.compute.model.InstanceWithNamedPorts;
+import com.google.api.services.compute.model.Operation;
 import com.google.common.collect.Sets;
 import com.sequenceiq.cloudbreak.cloud.context.AuthenticatedContext;
 import com.sequenceiq.cloudbreak.cloud.gcp.GcpResourceException;
@@ -33,13 +34,22 @@ import com.sequenceiq.cloudbreak.cloud.model.Network;
 import com.sequenceiq.cloudbreak.cloud.model.Security;
 import com.sequenceiq.common.api.type.ResourceType;
 
+/**
+ * The Group Resource Builder that is responsible for the GCP API calls to manage an instance group
+ * This currently only defines unmanaged instance groups
+ * In GCP an instance group is a collection of Compute Instances in the same Zone and subnet
+ * An unmanaged instace group is only used to be applied as a target of a load balancer backend
+ * An instance shoup be added to at most 1 load balanced instance group
+ * This creates a Instance Group for every group defined in a stack.
+ */
+
 public class GcpInstanceGroupResourceBuilder extends AbstractGcpGroupBuilder {
 
     private static final int ORDER = 1;
 
     @Override
     public CloudResource create(GcpContext context, AuthenticatedContext auth, Group group, Network network) {
-        String resourceName = getResourceNameService().resourceName(resourceType(), context.getName());
+        String resourceName = getResourceNameService().resourceName(resourceType(), context.getName(), group.getName());
         return createNamedResource(resourceType(), resourceName);
     }
 
@@ -50,13 +60,8 @@ public class GcpInstanceGroupResourceBuilder extends AbstractGcpGroupBuilder {
 
         Insert insert = context.getCompute().instanceGroups().insert(context.getProjectId(),
                 context.getLocation().getAvailabilityZone().value(), new InstanceGroup().setName(resource.getName()));
-        CloudResource instanceGroupCloudResource = doOperationalRequest(resource, insert);
 
-        if (group.getInstances().isEmpty()) {
-            return instanceGroupCloudResource;
-        }
-        updateInstanceList(context, auth, group, network, security, resource);
-        return instanceGroupCloudResource;
+        return doOperationalRequest(resource, insert);
     }
 
     @Override
@@ -65,9 +70,9 @@ public class GcpInstanceGroupResourceBuilder extends AbstractGcpGroupBuilder {
     }
 
     /*
-     * compute difference between Group and GCP, remove any no longer needed then add new
+     * compute difference between current Group and GCP Instance Group, remove any no longer needed then add new
      */
-    private void updateInstanceList(GcpContext context, AuthenticatedContext auth,
+    protected void updateInstanceList(GcpContext context, AuthenticatedContext auth,
             Group group, Network network, Security security, CloudResource resource) throws IOException {
         Compute compute = context.getCompute();
         String projectId = context.getProjectId();
@@ -125,8 +130,13 @@ public class GcpInstanceGroupResourceBuilder extends AbstractGcpGroupBuilder {
     public CloudResource delete(GcpContext context, AuthenticatedContext auth, CloudResource resource, Network network) throws Exception {
         Delete delete = context.getCompute().instanceGroups().delete(context.getProjectId(),
                 context.getLocation().getAvailabilityZone().value(), resource.getName());
-
-        return doOperationalRequest(resource, delete);
+        try {
+            Operation operation = delete.execute();
+            return createOperationAwareCloudResource(resource, operation);
+        } catch (GoogleJsonResponseException e) {
+            exceptionHandler(e, resource.getName(), resourceType());
+            return null;
+        }
     }
 
     @Override

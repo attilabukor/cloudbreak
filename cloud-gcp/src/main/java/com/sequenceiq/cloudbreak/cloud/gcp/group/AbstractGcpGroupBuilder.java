@@ -29,8 +29,7 @@ public abstract class AbstractGcpGroupBuilder extends AbstractGcpResourceBuilder
             }
             return createOperationAwareCloudResource(resource, operation);
         } catch (GoogleJsonResponseException e) {
-            exceptionHandler(e, resource.getName(), resourceType());
-            throw new GcpResourceException(checkException(e), resourceType(), resource.getName());
+            throw exceptionHandlerWithThrow(e, resource.getName(), resourceType());
         }
     }
 }

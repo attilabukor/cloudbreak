@@ -18,11 +18,13 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.google.api.services.compute.Compute;
+import com.google.api.services.compute.Compute.InstanceGroups;
 import com.google.api.services.compute.model.InstanceGroupsAddInstancesRequest;
 import com.google.api.services.compute.model.InstanceGroupsListInstances;
 import com.google.api.services.compute.model.Operation;
 import com.google.common.collect.Lists;
 import com.sequenceiq.cloudbreak.cloud.context.AuthenticatedContext;
+import com.sequenceiq.cloudbreak.cloud.gcp.GcpResourceException;
 import com.sequenceiq.cloudbreak.cloud.gcp.context.GcpContext;
 import com.sequenceiq.cloudbreak.cloud.gcp.service.GcpResourceNameService;
 import com.sequenceiq.cloudbreak.cloud.gcp.util.GcpStackUtil;
@@ -48,6 +50,39 @@ public class GcpInstanceGroupResourceBuilderTest {
     @InjectMocks
     private GcpInstanceGroupResourceBuilder underTest;
 
+    @Mock
+    private Network network;
+
+    @Mock
+    private GcpContext gcpContext;
+
+    @Mock
+    private AuthenticatedContext authenticatedContext;
+
+    @Mock
+    private Compute compute;
+
+    @Mock
+    private Location location;
+
+    @Mock
+    private AvailabilityZone availabilityZone;
+
+    @Mock
+    private InstanceGroups instanceGroups;
+
+    @Mock
+    private InstanceGroups.Delete instanceGroupsDelete;
+
+    @Mock
+    private Operation operation;
+
+    @Mock
+    private Security security;
+
+    @Mock
+    private Group group;
+
     @Test
     public void testDeleteWhenEverythingGoesFine() throws Exception {
         CloudResource resource = new CloudResource.Builder()
@@ -59,15 +94,6 @@ public class GcpInstanceGroupResourceBuilderTest {
                 .params(new HashMap<>())
                 .persistent(true)
                 .build();
-        GcpContext gcpContext = mock(GcpContext.class);
-        AuthenticatedContext authenticatedContext = mock(AuthenticatedContext.class);
-        Network network = mock(Network.class);
-        Compute compute = mock(Compute.class);
-        Location location = mock(Location.class);
-        AvailabilityZone availabilityZone = mock(AvailabilityZone.class);
-        Compute.InstanceGroups instanceGroups = mock(Compute.InstanceGroups.class);
-        Compute.InstanceGroups.Delete instanceGroupsDelete = mock(Compute.InstanceGroups.Delete.class);
-        Operation operation = mock(Operation.class);
 
         when(gcpContext.getCompute()).thenReturn(compute);
         when(gcpContext.getProjectId()).thenReturn("id");
@@ -78,7 +104,6 @@ public class GcpInstanceGroupResourceBuilderTest {
         when(instanceGroups.delete(anyString(), anyString(), anyString())).thenReturn(instanceGroupsDelete);
         when(instanceGroupsDelete.execute()).thenReturn(operation);
         when(operation.getName()).thenReturn("name");
-        when(operation.getHttpErrorStatusCode()).thenReturn(null);
 
         CloudResource delete = underTest.delete(gcpContext, authenticatedContext, resource, network);
 
@@ -91,11 +116,6 @@ public class GcpInstanceGroupResourceBuilderTest {
 
     @Test
     public void testCreateWhenEverythingGoesFine() throws Exception {
-        GcpContext gcpContext = mock(GcpContext.class);
-        AuthenticatedContext authenticatedContext = mock(AuthenticatedContext.class);
-        Network network = mock(Network.class);
-        Group group = mock(Group.class);
-
         when(gcpContext.getName()).thenReturn("name");
         when(resourceNameService.resourceName(any(ResourceType.class), any())).thenReturn("test");
 
@@ -105,7 +125,7 @@ public class GcpInstanceGroupResourceBuilderTest {
     }
 
     @Test
-    public void testBuildWithItemsInGroup() throws Exception {
+    public void testBuild() throws Exception {
         CloudResource resource = new CloudResource.Builder()
                 .type(ResourceType.GCP_INSTANCE_GROUP)
                 .status(CommonStatus.CREATED)
@@ -115,28 +135,79 @@ public class GcpInstanceGroupResourceBuilderTest {
                 .params(new HashMap<>())
                 .persistent(true)
                 .build();
-        GcpContext gcpContext = mock(GcpContext.class);
-        AuthenticatedContext authenticatedContext = mock(AuthenticatedContext.class);
-        Compute compute = mock(Compute.class);
-        Network network = mock(Network.class);
-        Group group = mock(Group.class);
+        Compute.InstanceGroups.Insert instanceGroupsInsert = mock(Compute.InstanceGroups.Insert.class);
+
+        when(gcpContext.getCompute()).thenReturn(compute);
+        when(gcpContext.getProjectId()).thenReturn("id");
+        when(gcpContext.getLocation()).thenReturn(location);
+        when(location.getAvailabilityZone()).thenReturn(availabilityZone);
+        when(availabilityZone.value()).thenReturn("zone");
+
+        when(compute.instanceGroups()).thenReturn(instanceGroups);
+        when(instanceGroups.insert(anyString(), anyString(), any())).thenReturn(instanceGroupsInsert);
+        when(instanceGroupsInsert.execute()).thenReturn(operation);
+        when(operation.getName()).thenReturn("name");
+        when(operation.getHttpErrorStatusCode()).thenReturn(null);
+
+        CloudResource cloudResource = underTest.build(gcpContext, authenticatedContext, group, network, security, resource);
+
+        Assert.assertEquals("super", cloudResource.getName());
+
+    }
+
+    @Test
+    public void testBuildNoPermission() throws Exception {
+        CloudResource resource = new CloudResource.Builder()
+                .type(ResourceType.GCP_INSTANCE_GROUP)
+                .status(CommonStatus.CREATED)
+                .group("master")
+                .name("super")
+                .instanceId("id-123")
+                .params(new HashMap<>())
+                .persistent(true)
+                .build();
+        Compute.InstanceGroups.Insert instanceGroupsInsert = mock(Compute.InstanceGroups.Insert.class);
+
+        when(gcpContext.getCompute()).thenReturn(compute);
+        when(gcpContext.getProjectId()).thenReturn("id");
+        when(gcpContext.getLocation()).thenReturn(location);
+        when(location.getAvailabilityZone()).thenReturn(availabilityZone);
+        when(availabilityZone.value()).thenReturn("zone");
+
+        when(compute.instanceGroups()).thenReturn(instanceGroups);
+        when(instanceGroups.insert(anyString(), anyString(), any())).thenReturn(instanceGroupsInsert);
+        when(instanceGroupsInsert.execute()).thenReturn(operation);
+        when(operation.getHttpErrorStatusCode()).thenReturn(401);
+        when(operation.getHttpErrorMessage()).thenReturn("Not Authorized");
+
+        Assert.assertThrows("Not Authorized", GcpResourceException.class,
+                () -> underTest.build(gcpContext, authenticatedContext, group, network, security, resource));
+    }
+
+    @Test
+    public void testUpdate() throws Exception {
+        CloudResource resource = new CloudResource.Builder()
+                .type(ResourceType.GCP_INSTANCE_GROUP)
+                .status(CommonStatus.CREATED)
+                .group("master")
+                .name("super")
+                .instanceId("id-123")
+                .params(new HashMap<>())
+                .persistent(true)
+                .build();
         CloudInstance instance1 = mock(CloudInstance.class);
         CloudInstance instance2 = mock(CloudInstance.class);
         List<CloudInstance> instances = Lists.newArrayList(instance1, instance2);
-        Security security = mock(Security.class);
         Compute.InstanceGroups instanceGroups = mock(Compute.InstanceGroups.class);
         Compute.InstanceGroups.Insert instanceGroupsInsert = mock(Compute.InstanceGroups.Insert.class);
         Compute.InstanceGroups.ListInstances instanceGroupsListInstances = mock(Compute.InstanceGroups.ListInstances.class);
         Compute.InstanceGroups.AddInstances instanceGroupsAddInstances = mock(Compute.InstanceGroups.AddInstances.class);
-        Operation operation = mock(Operation.class);
 
         when(gcpContext.getCompute()).thenReturn(compute);
         when(gcpContext.getProjectId()).thenReturn("id");
         when(instance1.getInstanceId()).thenReturn("inst1");
         when(instance2.getInstanceId()).thenReturn("inst2");
         when(group.getInstances()).thenReturn(instances);
-        Location location = mock(Location.class);
-        AvailabilityZone availabilityZone = mock(AvailabilityZone.class);
         when(gcpContext.getLocation()).thenReturn(location);
         when(location.getAvailabilityZone()).thenReturn(availabilityZone);
         when(availabilityZone.value()).thenReturn("zone");
@@ -154,6 +225,7 @@ public class GcpInstanceGroupResourceBuilderTest {
         when(instanceGroupsAddInstances.execute()).thenReturn(operation);
 
         CloudResource cloudResource = underTest.build(gcpContext, authenticatedContext, group, network, security, resource);
+        underTest.updateInstanceList(gcpContext, authenticatedContext, group, network, security, resource);
 
         Assert.assertEquals("super", cloudResource.getName());
 

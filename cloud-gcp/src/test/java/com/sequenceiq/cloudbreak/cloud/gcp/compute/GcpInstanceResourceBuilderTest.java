@@ -39,6 +39,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.api.services.compute.Compute;
+import com.google.api.services.compute.Compute.InstanceGroups;
+import com.google.api.services.compute.Compute.InstanceGroups.AddInstances;
 import com.google.api.services.compute.Compute.Instances;
 import com.google.api.services.compute.Compute.Instances.Get;
 import com.google.api.services.compute.Compute.Instances.Insert;
@@ -128,6 +130,9 @@ public class GcpInstanceResourceBuilderTest {
     private Instances instances;
 
     @Mock
+    private InstanceGroups instanceGroups;
+
+    @Mock
     private GcpStackUtil gcpStackUtil;
 
     @Mock
@@ -135,6 +140,9 @@ public class GcpInstanceResourceBuilderTest {
 
     @Mock
     private Insert insert;
+
+    @Mock
+    private AddInstances addInstances;
 
     @Mock
     private CustomGcpDiskEncryptionService customGcpDiskEncryptionService;
@@ -204,6 +212,7 @@ public class GcpInstanceResourceBuilderTest {
         when(instances.insert(anyString(), anyString(), any(Instance.class))).thenReturn(insert);
         when(insert.setPrettyPrint(anyBoolean())).thenReturn(insert);
         when(insert.execute()).thenReturn(operation);
+        mockInstanceGroupAdd();
 
         builder.build(context, privateId, authenticatedContext, group, buildableResources, cloudStack);
 
@@ -212,6 +221,12 @@ public class GcpInstanceResourceBuilderTest {
         verify(instances).insert(anyString(), anyString(), instanceArg.capture());
         assertTrue(instanceArg.getValue().getScheduling().getPreemptible());
         assertNull(instanceArg.getValue().getHostname());
+    }
+
+    private void mockInstanceGroupAdd() throws IOException {
+        when(compute.instanceGroups()).thenReturn(instanceGroups);
+        when(instanceGroups.addInstances(anyString(), anyString(), anyString(), any())).thenReturn(addInstances);
+        when(addInstances.execute()).thenReturn(operation);
     }
 
     @Test
@@ -226,6 +241,7 @@ public class GcpInstanceResourceBuilderTest {
         when(instances.insert(anyString(), anyString(), any(Instance.class))).thenReturn(insert);
         when(insert.setPrettyPrint(anyBoolean())).thenReturn(insert);
         when(insert.execute()).thenReturn(operation);
+        mockInstanceGroupAdd();
 
         builder.build(context, privateId, authenticatedContext, group, buildableResources, cloudStack);
 
@@ -248,6 +264,7 @@ public class GcpInstanceResourceBuilderTest {
         when(instances.insert(anyString(), anyString(), any(Instance.class))).thenReturn(insert);
         when(insert.setPrettyPrint(anyBoolean())).thenReturn(insert);
         when(insert.execute()).thenReturn(operation);
+        mockInstanceGroupAdd();
 
         builder.build(context, privateId, authenticatedContext, group, buildableResources, cloudStack);
 
@@ -270,6 +287,7 @@ public class GcpInstanceResourceBuilderTest {
         when(instances.insert(anyString(), anyString(), any(Instance.class))).thenReturn(insert);
         when(insert.setPrettyPrint(anyBoolean())).thenReturn(insert);
         when(insert.execute()).thenReturn(operation);
+        mockInstanceGroupAdd();
 
         builder.build(context, privateId, authenticatedContext, group, buildableResources, cloudStack);
 
@@ -296,6 +314,7 @@ public class GcpInstanceResourceBuilderTest {
         when(instances.insert(anyString(), anyString(), any(Instance.class))).thenReturn(insert);
         when(insert.setPrettyPrint(anyBoolean())).thenReturn(insert);
         when(insert.execute()).thenReturn(operation);
+        mockInstanceGroupAdd();
 
         builder.build(context, privateId, authenticatedContext, group, buildableResources, cloudStack);
 
@@ -326,6 +345,7 @@ public class GcpInstanceResourceBuilderTest {
         when(instances.insert(anyString(), anyString(), any(Instance.class))).thenReturn(insert);
         when(insert.setPrettyPrint(anyBoolean())).thenReturn(insert);
         when(insert.execute()).thenReturn(operation);
+        mockInstanceGroupAdd();
 
         builder.build(context, privateId, authenticatedContext, group, buildableResources, cloudStack);
 
@@ -381,6 +401,7 @@ public class GcpInstanceResourceBuilderTest {
         ArgumentCaptor<Instance> instanceArgumentCaptor = ArgumentCaptor.forClass(Instance.class);
         when(instances.insert(anyString(), anyString(), instanceArgumentCaptor.capture())).thenReturn(insert);
         when(insert.execute()).thenReturn(operation);
+        mockInstanceGroupAdd();
 
         builder.build(context, privateId, authenticatedContext, group, buildableResources, cloudStack);
 
@@ -443,6 +464,7 @@ public class GcpInstanceResourceBuilderTest {
         ArgumentCaptor<Instance> instanceArgumentCaptor = ArgumentCaptor.forClass(Instance.class);
         when(instances.insert(anyString(), anyString(), instanceArgumentCaptor.capture())).thenReturn(insert);
         when(insert.execute()).thenReturn(operation);
+        mockInstanceGroupAdd();
 
         CustomerEncryptionKey customerEncryptionKey = new CustomerEncryptionKey();
         customerEncryptionKey.setRawKey("encodedKey==");

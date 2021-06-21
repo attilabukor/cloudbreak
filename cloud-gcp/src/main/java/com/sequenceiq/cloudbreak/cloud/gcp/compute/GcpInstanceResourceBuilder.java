@@ -25,6 +25,7 @@ import com.google.api.client.auth.oauth2.TokenResponseException;
 import com.google.api.client.googleapis.json.GoogleJsonResponseException;
 import com.google.api.services.compute.Compute;
 import com.google.api.services.compute.Compute.Addresses;
+import com.google.api.services.compute.Compute.InstanceGroups.AddInstances;
 import com.google.api.services.compute.Compute.Instances.Get;
 import com.google.api.services.compute.Compute.Instances.Insert;
 import com.google.api.services.compute.model.AccessConfig;
@@ -32,6 +33,8 @@ import com.google.api.services.compute.model.AttachedDisk;
 import com.google.api.services.compute.model.CustomerEncryptionKey;
 import com.google.api.services.compute.model.CustomerEncryptionKeyProtectedDisk;
 import com.google.api.services.compute.model.Instance;
+import com.google.api.services.compute.model.InstanceGroupsAddInstancesRequest;
+import com.google.api.services.compute.model.InstanceReference;
 import com.google.api.services.compute.model.InstancesStartWithEncryptionKeyRequest;
 import com.google.api.services.compute.model.Metadata;
 import com.google.api.services.compute.model.Metadata.Items;
@@ -209,7 +212,29 @@ public class GcpInstanceResourceBuilder extends AbstractGcpComputeBuilder {
             Operation operation = insert.execute();
             verifyOperation(operation, buildableResource);
             updateDiskSetWithInstanceName(auth, computeResources, instance);
+            assignToInstanceGroup(context, auth, group, instance, buildableResource);
             return singletonList(createOperationAwareCloudResource(buildableResource.get(0), operation));
+        } catch (GoogleJsonResponseException e) {
+            throw new GcpResourceException(checkException(e), resourceType(), buildableResource.get(0).getName());
+        }
+    }
+
+    protected void assignToInstanceGroup(GcpContext context, AuthenticatedContext auth,
+            Group group, Instance instance, List<CloudResource> buildableResource) throws IOException {
+        Compute compute = context.getCompute();
+        String projectId = context.getProjectId();
+        Location location = context.getLocation();
+
+        List<InstanceReference> addReferences = new ArrayList<>();
+        addReferences.add(new InstanceReference().setInstance(String.format("https://www.googleapis.com/compute/v1/projects/%s/zones/%s/instances/%s",
+                projectId, location.getAvailabilityZone().value(), instance.getName())));
+        AddInstances addInstances = compute.instanceGroups().addInstances(projectId,
+                location.getAvailabilityZone().value(),
+                getResourceNameService().resourceName(ResourceType.GCP_INSTANCE_GROUP, context.getName(), group.getName()),
+                new InstanceGroupsAddInstancesRequest().setInstances(addReferences));
+        try {
+            Operation execute = addInstances.execute();
+            verifyOperation(execute, buildableResource);
         } catch (GoogleJsonResponseException e) {
             throw new GcpResourceException(checkException(e), resourceType(), buildableResource.get(0).getName());
         }
