@@ -59,6 +59,7 @@ import com.sequenceiq.cloudbreak.cloud.model.InstanceTemplate;
 import com.sequenceiq.cloudbreak.cloud.model.Location;
 import com.sequenceiq.cloudbreak.cloud.model.Region;
 import com.sequenceiq.cloudbreak.cloud.model.Volume;
+import com.sequenceiq.cloudbreak.common.network.NetworkConstants;
 import com.sequenceiq.common.api.type.LoadBalancerType;
 
 @ExtendWith(MockitoExtension.class)
@@ -133,7 +134,9 @@ public class AwsMetaDataCollectorTest {
         InstanceAuthentication instanceAuthentication = new InstanceAuthentication("sshkey", "", "cloudbreak");
         vms.add(new CloudInstance("i-1",
                 new InstanceTemplate("fla", "cbgateway", 5L, volumes, InstanceStatus.CREATED, null, 0L, "imageId"),
-                instanceAuthentication));
+                instanceAuthentication,
+                "subnet-1",
+                "az1"));
 
         when(awsClient.createCloudFormationClient(any(AwsCredentialView.class), eq("region"))).thenReturn(amazonCFClient);
         when(awsClient.createAutoScalingClient(any(AwsCredentialView.class), eq("region"))).thenReturn(amazonASClient);
@@ -199,7 +202,7 @@ public class AwsMetaDataCollectorTest {
     private void verifyResultSubnetIds(List<CloudVmMetaDataStatus> statuses, String... subnetIdsExpected) {
         assertThat(statuses).hasSize(subnetIdsExpected.length);
         for (int i = 0; i < statuses.size(); i++) {
-            assertThat(statuses.get(i).getCloudVmInstanceStatus().getCloudInstance().getStringParameter(CloudInstance.SUBNET_ID))
+            assertThat(statuses.get(i).getCloudVmInstanceStatus().getCloudInstance().getStringParameter(NetworkConstants.SUBNET_ID))
                     .isEqualTo(subnetIdsExpected[i]);
         }
     }
@@ -219,13 +222,19 @@ public class AwsMetaDataCollectorTest {
         InstanceAuthentication instanceAuthentication = new InstanceAuthentication("sshkey", "", "cloudbreak");
         vms.add(new CloudInstance(null,
                 new InstanceTemplate("fla", "cbgateway", 5L, volumes, InstanceStatus.CREATED, null, 0L, "imageId"),
-                instanceAuthentication));
+                instanceAuthentication,
+                "subnet-1",
+                "az1"));
         vms.add(new CloudInstance(null,
                 new InstanceTemplate("fla", "cbgateway", 6L, volumes, InstanceStatus.CREATED, null, 0L, "imageId"),
-                instanceAuthentication));
+                instanceAuthentication,
+                "subnet-1",
+                "az1"));
         vms.add(new CloudInstance(null,
                 new InstanceTemplate("fla", "cbgateway", 7L, volumes, InstanceStatus.CREATED, null, 0L, "imageId"),
-                instanceAuthentication));
+                instanceAuthentication,
+                "subnet-1",
+                "az1"));
 
         when(awsClient.createCloudFormationClient(any(AwsCredentialView.class), eq("region"))).thenReturn(amazonCFClient);
         when(awsClient.createAutoScalingClient(any(AwsCredentialView.class), eq("region"))).thenReturn(amazonASClient);
@@ -283,10 +292,14 @@ public class AwsMetaDataCollectorTest {
         InstanceAuthentication instanceAuthentication = new InstanceAuthentication("sshkey", "", "cloudbreak");
         vms.add(new CloudInstance(null,
                 new InstanceTemplate("fla", "cbgateway", 5L, volumes, InstanceStatus.CREATED, null, 0L, "imageId"),
-                instanceAuthentication));
+                instanceAuthentication,
+                "subnet-1",
+                "az1"));
         vms.add(new CloudInstance("i-1",
                 new InstanceTemplate("fla", "cbgateway", 5L, volumes, InstanceStatus.CREATED, null, 0L, "imageId"),
-                instanceAuthentication));
+                instanceAuthentication,
+                "subnet-1",
+                "az1"));
 
         when(awsClient.createCloudFormationClient(any(AwsCredentialView.class), eq("region"))).thenReturn(amazonCFClient);
         when(awsClient.createAutoScalingClient(any(AwsCredentialView.class), eq("region"))).thenReturn(amazonASClient);
@@ -349,13 +362,17 @@ public class AwsMetaDataCollectorTest {
         InstanceAuthentication instanceAuthentication = new InstanceAuthentication("sshkey", "", "cloudbreak");
         CloudInstance cloudInstance1 = new CloudInstance(null,
                 new InstanceTemplate("fla", "cbgateway", 5L, volumes, InstanceStatus.CREATED, null, 0L, "imageId"),
-                instanceAuthentication);
+                instanceAuthentication,
+                "subnet-1",
+                "az1");
         everyVms.add(cloudInstance1);
         newVms.add(cloudInstance1);
 
         everyVms.add(new CloudInstance("i-1",
                 new InstanceTemplate("fla", "cbgateway", 5L, volumes, InstanceStatus.CREATED, null, 0L, "imageId"),
-                instanceAuthentication));
+                instanceAuthentication,
+                "subnet-1",
+                "az1"));
 
         when(awsClient.createCloudFormationClient(any(AwsCredentialView.class), eq("region"))).thenReturn(amazonCFClient);
         when(awsClient.createAutoScalingClient(any(AwsCredentialView.class), eq("region"))).thenReturn(amazonASClient);
@@ -397,7 +414,7 @@ public class AwsMetaDataCollectorTest {
 
         verifyQueriedSubnetIds(SUBNET_ID_1, SUBNET_ID_2);
         verifyResultSubnetIds(statuses, SUBNET_ID_2);
-        assertThat(everyVms.get(0).getStringParameter(CloudInstance.SUBNET_ID)).isNull();
+        assertThat(everyVms.get(0).getStringParameter(NetworkConstants.SUBNET_ID)).isNull();
         verifyResultAvailabilityZones(statuses, AVAILABILITY_ZONE_2);
         assertThat(everyVms.get(0).getStringParameter(CloudInstance.AVAILABILITY_ZONE)).isNull();
     }
@@ -528,7 +545,9 @@ public class AwsMetaDataCollectorTest {
         InstanceAuthentication instanceAuthentication = new InstanceAuthentication("sshkey", "", "cloudbreak");
         vms.add(new CloudInstance("i-1",
                 new InstanceTemplate("fla", "cbgateway", 5L, new ArrayList<>(), InstanceStatus.CREATED, null, 0L, "imageId"),
-                instanceAuthentication));
+                instanceAuthentication,
+                "subnet-1",
+                "az1"));
 
         UnsupportedOperationException exception = new UnsupportedOperationException("Serious problem");
         when(awsClient.createCloudFormationClient(any(AwsCredentialView.class), eq("region"))).thenThrow(exception);

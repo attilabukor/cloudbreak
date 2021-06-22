@@ -4,6 +4,8 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 
@@ -24,8 +26,10 @@ import com.google.common.collect.ImmutableList;
 import com.sequenceiq.cloudbreak.cloud.exception.CloudConnectorException;
 import com.sequenceiq.cloudbreak.cloud.model.CloudInstance;
 import com.sequenceiq.cloudbreak.cloud.model.Group;
+import com.sequenceiq.cloudbreak.cloud.model.GroupNetwork;
 import com.sequenceiq.cloudbreak.cloud.model.InstanceTemplate;
 import com.sequenceiq.common.api.type.InstanceGroupType;
+import com.sequenceiq.common.api.type.OutboundInternetTraffic;
 
 @RunWith(MockitoJUnitRunner.class)
 public class OpenStackFlavorVerifierTest {
@@ -69,7 +73,7 @@ public class OpenStackFlavorVerifierTest {
     public void openStackNullFlavor() {
         try {
             Group g1 = new Group("name", InstanceGroupType.GATEWAY, new ArrayList<>(), null, null,
-                    null, "loginUserName", "publicKey", 50, Optional.empty());
+                    null, "loginUserName", "publicKey", 50, Optional.empty(), createGroupNetwork());
             List<Group> instanceGroups = ImmutableList.of(g1);
             when(flavorService.list()).thenReturn(null);
             underTest.flavorsExist(osClient, instanceGroups);
@@ -93,11 +97,16 @@ public class OpenStackFlavorVerifierTest {
 
     private Group createGroup(String flavor) {
         InstanceTemplate template = new InstanceTemplate(flavor, null, null, new ArrayList<>(), null, null, null, null);
-        CloudInstance skeleton = new CloudInstance("id1", template, null);
+        CloudInstance skeleton = new CloudInstance("id1", template, null, "subnet-1", "az1");
 
         Group group = new Group("name", InstanceGroupType.GATEWAY, new ArrayList<>(), null, skeleton,
-                null, "loginUserName", "publicKey", 50, Optional.empty());
+                null, "loginUserName", "publicKey",
+                50, Optional.empty(), createGroupNetwork());
         return group;
+    }
+
+    private GroupNetwork createGroupNetwork() {
+        return new GroupNetwork(OutboundInternetTraffic.DISABLED, new HashSet<>(), new HashMap<>());
     }
 
     private Flavor createFlavor(String flavorName) {

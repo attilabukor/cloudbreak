@@ -1,5 +1,7 @@
 package com.sequenceiq.cloudbreak.cloud.azure.view;
 
+import static com.sequenceiq.cloudbreak.common.network.NetworkConstants.SUBNET_ID;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -88,7 +90,7 @@ public class AzureStackView {
     }
 
     private String getInstanceSubnetId(CloudInstance instance, AzureSubnetStrategy subnetStrategy) {
-        String stored = instance.getStringParameter(CloudInstance.SUBNET_ID);
+        String stored = instance.getStringParameter(SUBNET_ID);
         if (StringUtils.isNoneBlank(stored)) {
             return stored;
         }

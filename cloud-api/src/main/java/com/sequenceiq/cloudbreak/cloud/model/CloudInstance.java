@@ -25,12 +25,6 @@ public class CloudInstance extends DynamicModel {
     public static final String DISCOVERY_NAME = "DiscoveryName";
 
     /**
-     * Key of the optional dynamic parameter denoting the ID of the subnet (in a cloud platform specific format) the cloud instance is deployed in.
-     * May be absent if the subnet assignment is not (yet) known.
-     */
-    public static final String SUBNET_ID = "subnetId";
-
-    /**
      * Key of the optional dynamic parameter denoting the name of the availability zone (in a cloud platform specific format) the cloud instance is deployed in.
      * Absent if the cloud platform does not support this construct, or if the availability zone assignment is not (yet) known.
      */
@@ -38,25 +32,39 @@ public class CloudInstance extends DynamicModel {
 
     private final String instanceId;
 
+    private final String subnetId;
+
+    private final String availabilityZone;
+
     private final InstanceTemplate template;
 
     private final InstanceAuthentication authentication;
 
-    public CloudInstance(String instanceId, InstanceTemplate template, InstanceAuthentication authentication) {
+    public CloudInstance(String instanceId,
+        InstanceTemplate template,
+        InstanceAuthentication authentication,
+        String subnetId,
+        String availabilityZone) {
         this.instanceId = instanceId;
         this.template = template;
         this.authentication = authentication;
+        this.availabilityZone = availabilityZone;
+        this.subnetId = subnetId;
     }
 
     @JsonCreator
     public CloudInstance(@JsonProperty("instanceId") String instanceId,
             @JsonProperty("template") InstanceTemplate template,
             @JsonProperty("authentication") InstanceAuthentication authentication,
+            @JsonProperty("subnetId") String subnetId,
+            @JsonProperty("availabilityZone") String availabilityZone,
             @JsonProperty("params") Map<String, Object> params) {
         super(params);
         this.instanceId = instanceId;
         this.template = template;
         this.authentication = authentication;
+        this.subnetId = subnetId;
+        this.availabilityZone = availabilityZone;
     }
 
     public String getInstanceId() {
@@ -71,6 +79,14 @@ public class CloudInstance extends DynamicModel {
         return authentication;
     }
 
+    public String getSubnetId() {
+        return subnetId;
+    }
+
+    public String getAvailabilityZone() {
+        return availabilityZone;
+    }
+
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder("CloudInstance{");
@@ -78,6 +94,8 @@ public class CloudInstance extends DynamicModel {
         sb.append(super.toString());
         sb.append(", template=").append(template);
         sb.append(", authentication=").append(authentication);
+        sb.append(", subnetId=").append(subnetId);
+        sb.append(", availabilityZone=").append(availabilityZone);
         sb.append('}');
         return sb.toString();
     }
@@ -94,12 +112,14 @@ public class CloudInstance extends DynamicModel {
         CloudInstance other = (CloudInstance) obj;
         return Objects.equals(instanceId, other.instanceId)
                 && Objects.equals(template, other.template)
+                && Objects.equals(subnetId, other.subnetId)
+                && Objects.equals(availabilityZone, other.availabilityZone)
                 && Objects.equals(authentication, other.authentication)
                 && Objects.equals(getParameters(), other.getParameters());
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(getParameters(), instanceId, template, authentication);
+        return Objects.hash(getParameters(), instanceId, template, authentication, subnetId, availabilityZone);
     }
 }

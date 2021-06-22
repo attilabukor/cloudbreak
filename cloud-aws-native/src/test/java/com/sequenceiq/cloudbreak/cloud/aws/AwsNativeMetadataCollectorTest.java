@@ -111,8 +111,8 @@ class AwsNativeMetadataCollectorTest {
         List<CloudResource> resources = List.of(cloudResource, secondCloudResource);
 
         InstanceTemplate instanceTemplate = new InstanceTemplate("flavor", "alma", 1L, Set.of(), CREATED, Map.of(), 1L, "imageid");
-        CloudInstance cloudInstance = new CloudInstance(anInstanceId, instanceTemplate, null);
-        CloudInstance secondCloudInstance = new CloudInstance(secondInstanceId, instanceTemplate, null);
+        CloudInstance cloudInstance = new CloudInstance(anInstanceId, instanceTemplate, null, "subnet-123", "az1");
+        CloudInstance secondCloudInstance = new CloudInstance(secondInstanceId, instanceTemplate, null, "subnet-123", "az1");
         List<CloudInstance> cloudInstances = List.of(cloudInstance, secondCloudInstance);
         when(awsClient.createEc2Client(any(), anyString())).thenReturn(ec2Client);
 
@@ -140,8 +140,8 @@ class AwsNativeMetadataCollectorTest {
         List<CloudResource> resources = List.of(cloudResource, secondCloudResource);
 
         InstanceTemplate instanceTemplate = new InstanceTemplate("flavor", "alma", 1L, Set.of(), CREATED, Map.of(), 1L, "imageid");
-        CloudInstance cloudInstance = new CloudInstance(anInstanceId, instanceTemplate, null);
-        CloudInstance secondCloudInstance = new CloudInstance(secondInstanceId, instanceTemplate, null);
+        CloudInstance cloudInstance = new CloudInstance(anInstanceId, instanceTemplate, null, "subnet-123", "az1");
+        CloudInstance secondCloudInstance = new CloudInstance(secondInstanceId, instanceTemplate, null, "subnet-123", "az1");
         List<CloudInstance> cloudInstances = List.of(cloudInstance, secondCloudInstance);
         when(awsClient.createEc2Client(any(), anyString())).thenReturn(ec2Client);
         String instancesNotFoundMessage = String.format("Instance with id could not be found: '%s, %s'", anInstanceId, secondInstanceId);
@@ -165,8 +165,8 @@ class AwsNativeMetadataCollectorTest {
         List<CloudResource> resources = List.of(cloudResource, secondCloudResource);
 
         InstanceTemplate instanceTemplate = new InstanceTemplate("flavor", "alma", 1L, Set.of(), CREATED, Map.of(), 1L, "imageid");
-        CloudInstance cloudInstance = new CloudInstance(anInstanceId, instanceTemplate, null);
-        CloudInstance secondCloudInstance = new CloudInstance(secondInstanceId, instanceTemplate, null);
+        CloudInstance cloudInstance = new CloudInstance(anInstanceId, instanceTemplate, null, "subnet-123", "az1");
+        CloudInstance secondCloudInstance = new CloudInstance(secondInstanceId, instanceTemplate, null, "subnet-123", "az1");
         List<CloudInstance> cloudInstances = List.of(cloudInstance, secondCloudInstance);
         when(awsClient.createEc2Client(any(), anyString())).thenReturn(ec2Client);
         Instance anInstance = getAnInstance(anInstanceId);
@@ -196,7 +196,7 @@ class AwsNativeMetadataCollectorTest {
         for (int i = 0; i < 15; i++) {
             String anInstanceId = "anInstanceId" + i;
             resources.add(getCloudResource("aCrn" + i, "instanceName" + i, anInstanceId, AWS_INSTANCE));
-            cloudInstances.add(new CloudInstance(anInstanceId, instanceTemplate, null));
+            cloudInstances.add(new CloudInstance(anInstanceId, instanceTemplate, null, "subnet-123", "az1"));
             ec2Instances.add(getAnInstance(anInstanceId));
         }
         when(awsClient.createEc2Client(any(), anyString())).thenReturn(ec2Client);
@@ -230,7 +230,7 @@ class AwsNativeMetadataCollectorTest {
         for (int i = 0; i < 15; i++) {
             String anInstanceId = "anInstanceId" + i;
             resources.add(getCloudResource("aCrn" + i, "instanceName" + i, anInstanceId, AWS_INSTANCE));
-            cloudInstances.add(new CloudInstance(anInstanceId, instanceTemplate, null));
+            cloudInstances.add(new CloudInstance(anInstanceId, instanceTemplate, null, "subnet-123", "az1"));
             ec2Instances.add(getAnInstance(anInstanceId));
         }
         when(awsClient.createEc2Client(any(), anyString())).thenReturn(ec2Client);
@@ -267,7 +267,7 @@ class AwsNativeMetadataCollectorTest {
         List<CloudResource> resources = List.of(cloudResource);
 
         InstanceTemplate instanceTemplate = new InstanceTemplate("flavor", "alma", 1L, Set.of(), CREATED, Map.of(), 1L, "imageid");
-        CloudInstance cloudInstance = new CloudInstance(anInstanceId, instanceTemplate, null);
+        CloudInstance cloudInstance = new CloudInstance(anInstanceId, instanceTemplate, null, "subnet-123", "az1");
         List<CloudInstance> cloudInstances = List.of(cloudInstance);
         when(awsClient.createEc2Client(any(), anyString())).thenReturn(ec2Client);
         when(ec2Client.describeInstances(any())).thenThrow(new AmazonServiceException("Something unexpected happened..."));
@@ -287,7 +287,7 @@ class AwsNativeMetadataCollectorTest {
         List<CloudResource> resources = List.of(cloudResource);
 
         InstanceTemplate instanceTemplate = new InstanceTemplate("flavor", "alma", 1L, Set.of(), CREATED, Map.of(), 1L, "imageid");
-        CloudInstance cloudInstance = new CloudInstance(anInstanceId, instanceTemplate, null);
+        CloudInstance cloudInstance = new CloudInstance(anInstanceId, instanceTemplate, null, "subnet-123", "az1");
         List<CloudInstance> cloudInstances = List.of(cloudInstance);
         when(awsClient.createEc2Client(any(), anyString())).thenReturn(ec2Client);
         when(ec2Client.describeInstances(any())).thenThrow(new RuntimeException("Something really bad happened..."));

@@ -3,6 +3,7 @@ package com.sequenceiq.cloudbreak.service.stack.flow;
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.sequenceiq.cloudbreak.cloud.model.InstanceStatus.CREATED;
 import static com.sequenceiq.cloudbreak.cloud.model.InstanceStatus.TERMINATED;
+import static com.sequenceiq.cloudbreak.common.network.NetworkConstants.SUBNET_ID;
 
 import java.util.List;
 import java.util.Map;
@@ -144,7 +145,7 @@ public class MetadataSetupService {
                 instanceMetaDataEntry.setInstanceId(instanceId);
                 instanceMetaDataEntry.setPrivateId(privateId);
                 instanceMetaDataEntry.setStartDate(clock.getCurrentTimeMillis());
-                instanceMetaDataEntry.setSubnetId(cloudInstance.getStringParameter(CloudInstance.SUBNET_ID));
+                instanceMetaDataEntry.setSubnetId(cloudInstance.getStringParameter(SUBNET_ID));
                 instanceMetaDataEntry.setAvailabilityZone(cloudInstance.getStringParameter(CloudInstance.AVAILABILITY_ZONE));
                 instanceMetaDataEntry.setRackId(determineRackId(instanceMetaDataEntry.getSubnetId(), instanceMetaDataEntry.getAvailabilityZone()));
                 instanceMetaDataEntry.setInstanceName(cloudInstance.getStringParameter(CloudInstance.INSTANCE_NAME));

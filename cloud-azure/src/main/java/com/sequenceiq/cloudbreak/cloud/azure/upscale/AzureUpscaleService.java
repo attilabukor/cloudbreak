@@ -125,8 +125,15 @@ public class AzureUpscaleService {
     }
 
     private List<CloudInstance> getNewInstances(List<CloudResource> newInstances) {
+        // TODO MUST BE FIXED
         List<CloudInstance> newCloudInstances = newInstances.stream()
-                .map(cloudResource -> new CloudInstance(cloudResource.getInstanceId(), null, null, cloudResource.getParameters()))
+                .map(cloudResource -> new CloudInstance(
+                        cloudResource.getInstanceId(),
+                        null,
+                        null,
+                        null,
+                        null,
+                        cloudResource.getParameters()))
                 .collect(Collectors.toList());
         LOGGER.debug("Created instances to be removed {}", newCloudInstances.toString());
         return newCloudInstances;

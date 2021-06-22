@@ -144,7 +144,7 @@ public class AzureStackViewProviderTest {
     }
 
     private CloudInstance createCloudInstance() {
-        return new CloudInstance(INSTANCE_ID, createInstanceTemplate(), null);
+        return new CloudInstance(INSTANCE_ID, createInstanceTemplate(), null, "subnet-1", "az1");
     }
 
     private InstanceTemplate createInstanceTemplate() {
