@@ -5,6 +5,7 @@ import static com.sequenceiq.cloudbreak.cloud.aws.metadata.AwsNativeMetadataColl
 import static com.sequenceiq.cloudbreak.cloud.model.InstanceStatus.CREATED;
 import static com.sequenceiq.common.api.type.ResourceType.AWS_INSTANCE;
 import static com.sequenceiq.common.api.type.ResourceType.ELASTIC_LOAD_BALANCER;
+import static org.apache.commons.lang3.StringUtils.isNotEmpty;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -51,6 +52,7 @@ import com.sequenceiq.cloudbreak.cloud.model.CloudInstance;
 import com.sequenceiq.cloudbreak.cloud.model.CloudLoadBalancerMetadata;
 import com.sequenceiq.cloudbreak.cloud.model.CloudResource;
 import com.sequenceiq.cloudbreak.cloud.model.CloudVmMetaDataStatus;
+import com.sequenceiq.cloudbreak.cloud.model.InstanceStatus;
 import com.sequenceiq.cloudbreak.cloud.model.InstanceTemplate;
 import com.sequenceiq.cloudbreak.cloud.model.Location;
 import com.sequenceiq.cloudbreak.cloud.model.Region;
@@ -128,20 +130,23 @@ class AwsNativeMetadataCollectorTest {
         verify(ec2Client, times(1)).describeInstances(any());
         assertFalse(metaDataStatuses.isEmpty());
         assertEquals(resources.size(), metaDataStatuses.size());
+        assertTrue(metaDataStatuses.stream()
+                .allMatch(vmMetaDataStatus -> isNotEmpty(vmMetaDataStatus.getCloudVmInstanceStatus().getCloudInstance().getInstanceId())));
     }
 
     @Test
     void collectInstanceMetadataWhenTheSpecifiedInstanceIdsDoNotExist() {
         List<CloudInstance> allInstances = List.of();
         String anInstanceId = "anInstanceId";
-        CloudResource cloudResource = getCloudResource("aCrn", "instanceName", anInstanceId, AWS_INSTANCE);
+        CloudResource cloudResource = getCloudResource(String.valueOf(1L), "instanceName", anInstanceId, AWS_INSTANCE);
         String secondInstanceId = "secondInstanceId";
-        CloudResource secondCloudResource = getCloudResource("secondCrn", "secondInstanceName", secondInstanceId, AWS_INSTANCE);
+        CloudResource secondCloudResource = getCloudResource(String.valueOf(2L), "secondInstanceName", secondInstanceId, AWS_INSTANCE);
         List<CloudResource> resources = List.of(cloudResource, secondCloudResource);
 
         InstanceTemplate instanceTemplate = new InstanceTemplate("flavor", "alma", 1L, Set.of(), CREATED, Map.of(), 1L, "imageid");
         CloudInstance cloudInstance = new CloudInstance(anInstanceId, instanceTemplate, null);
-        CloudInstance secondCloudInstance = new CloudInstance(secondInstanceId, instanceTemplate, null);
+        InstanceTemplate secondInstanceTemplate = new InstanceTemplate("flavor", "alma", 2L, Set.of(), CREATED, Map.of(), 1L, "imageid");
+        CloudInstance secondCloudInstance = new CloudInstance(secondInstanceId, secondInstanceTemplate, null);
         List<CloudInstance> cloudInstances = List.of(cloudInstance, secondCloudInstance);
         when(awsClient.createEc2Client(any(), anyString())).thenReturn(ec2Client);
         String instancesNotFoundMessage = String.format("Instance with id could not be found: '%s, %s'", anInstanceId, secondInstanceId);
@@ -152,21 +157,26 @@ class AwsNativeMetadataCollectorTest {
         List<CloudVmMetaDataStatus> metaDataStatuses = underTest.collect(authenticatedContext, resources, cloudInstances, allInstances);
 
         verify(ec2Client, times(1)).describeInstances(any());
-        assertTrue(metaDataStatuses.isEmpty());
+        assertFalse(metaDataStatuses.isEmpty());
+        assertTrue(metaDataStatuses.stream()
+                .allMatch(cloudVmMetaDataStatus -> InstanceStatus.TERMINATED.equals(cloudVmMetaDataStatus.getCloudVmInstanceStatus().getStatus())));
+        assertTrue(metaDataStatuses.stream()
+                .allMatch(vmMetaDataStatus -> isNotEmpty(vmMetaDataStatus.getCloudVmInstanceStatus().getCloudInstance().getInstanceId())));
     }
 
     @Test
     void collectInstanceMetadataWhenOneOrMoreOfSpecifiedInstanceIdsDoNotExist() {
         List<CloudInstance> allInstances = List.of();
         String anInstanceId = "anInstanceId";
-        CloudResource cloudResource = getCloudResource("aCrn", "instanceName", anInstanceId, AWS_INSTANCE);
+        CloudResource cloudResource = getCloudResource(String.valueOf(1L), "instanceName", anInstanceId, AWS_INSTANCE);
         String secondInstanceId = "secondInstanceId";
-        CloudResource secondCloudResource = getCloudResource("secondCrn", "secondInstanceName", secondInstanceId, AWS_INSTANCE);
+        CloudResource secondCloudResource = getCloudResource(String.valueOf(2L), "secondInstanceName", secondInstanceId, AWS_INSTANCE);
         List<CloudResource> resources = List.of(cloudResource, secondCloudResource);
 
         InstanceTemplate instanceTemplate = new InstanceTemplate("flavor", "alma", 1L, Set.of(), CREATED, Map.of(), 1L, "imageid");
         CloudInstance cloudInstance = new CloudInstance(anInstanceId, instanceTemplate, null);
-        CloudInstance secondCloudInstance = new CloudInstance(secondInstanceId, instanceTemplate, null);
+        InstanceTemplate secondInstanceTemplate = new InstanceTemplate("flavor", "alma", 2L, Set.of(), CREATED, Map.of(), 1L, "imageid");
+        CloudInstance secondCloudInstance = new CloudInstance(secondInstanceId, secondInstanceTemplate, null);
         List<CloudInstance> cloudInstances = List.of(cloudInstance, secondCloudInstance);
         when(awsClient.createEc2Client(any(), anyString())).thenReturn(ec2Client);
         Instance anInstance = getAnInstance(anInstanceId);
@@ -182,7 +192,11 @@ class AwsNativeMetadataCollectorTest {
 
         verify(ec2Client, times(2)).describeInstances(any());
         assertFalse(metaDataStatuses.isEmpty());
-        assertEquals(1, metaDataStatuses.size());
+        assertEquals(2, metaDataStatuses.size());
+        assertTrue(metaDataStatuses.stream()
+                .anyMatch(metaDataStatus -> InstanceStatus.TERMINATED.equals(metaDataStatus.getCloudVmInstanceStatus().getStatus())));
+        assertTrue(metaDataStatuses.stream()
+                .allMatch(vmMetaDataStatus -> isNotEmpty(vmMetaDataStatus.getCloudVmInstanceStatus().getCloudInstance().getInstanceId())));
     }
 
     @Test
