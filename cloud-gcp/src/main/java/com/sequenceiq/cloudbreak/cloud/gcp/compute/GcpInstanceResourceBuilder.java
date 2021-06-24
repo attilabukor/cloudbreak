@@ -228,9 +228,10 @@ public class GcpInstanceResourceBuilder extends AbstractGcpComputeBuilder {
         List<InstanceReference> addReferences = new ArrayList<>();
         addReferences.add(new InstanceReference().setInstance(String.format("https://www.googleapis.com/compute/v1/projects/%s/zones/%s/instances/%s",
                 projectId, location.getAvailabilityZone().value(), instance.getName())));
+        CloudResource instanceGroupResource = filterResourcesByType(context.getGroupResources(group.getName()), ResourceType.GCP_INSTANCE_GROUP).get(0);
         AddInstances addInstances = compute.instanceGroups().addInstances(projectId,
                 location.getAvailabilityZone().value(),
-                getResourceNameService().resourceName(ResourceType.GCP_INSTANCE_GROUP, context.getName(), group.getName()),
+                instanceGroupResource.getName(),
                 new InstanceGroupsAddInstancesRequest().setInstances(addReferences));
         try {
             Operation execute = addInstances.execute();

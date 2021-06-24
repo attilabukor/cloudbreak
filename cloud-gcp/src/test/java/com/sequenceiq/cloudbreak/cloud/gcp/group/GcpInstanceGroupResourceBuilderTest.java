@@ -10,12 +10,15 @@ import java.util.HashMap;
 import java.util.List;
 
 import org.junit.Assert;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.api.services.compute.Compute;
 import com.google.api.services.compute.Compute.InstanceGroups;
@@ -40,9 +43,6 @@ import com.sequenceiq.common.api.type.ResourceType;
 
 @ExtendWith(MockitoExtension.class)
 public class GcpInstanceGroupResourceBuilderTest {
-
-    @Mock
-    private GcpResourceNameService resourceNameService;
 
     @Mock
     private GcpStackUtil gcpStackUtil;
@@ -83,6 +83,13 @@ public class GcpInstanceGroupResourceBuilderTest {
     @Mock
     private Group group;
 
+    @BeforeEach
+    private void setup() {
+        GcpResourceNameService resourceNameService = new GcpResourceNameService();
+        ReflectionTestUtils.setField(resourceNameService, "maxResourceNameLength", 50);
+        ReflectionTestUtils.setField(underTest, "resourceNameService", resourceNameService);
+    }
+
     @Test
     public void testDeleteWhenEverythingGoesFine() throws Exception {
         CloudResource resource = new CloudResource.Builder()
@@ -117,11 +124,11 @@ public class GcpInstanceGroupResourceBuilderTest {
     @Test
     public void testCreateWhenEverythingGoesFine() throws Exception {
         when(gcpContext.getName()).thenReturn("name");
-        when(resourceNameService.resourceName(any(ResourceType.class), any())).thenReturn("test");
+        when(group.getName()).thenReturn("group");
 
         CloudResource cloudResource = underTest.create(gcpContext, authenticatedContext, group, network);
 
-        Assert.assertEquals("test", cloudResource.getName());
+        Assertions.assertTrue(cloudResource.getName().startsWith("name-group"));
     }
 
     @Test

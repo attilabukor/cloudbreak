@@ -6,6 +6,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.springframework.stereotype.Service;
+
 import com.google.api.client.googleapis.json.GoogleJsonResponseException;
 import com.google.api.services.compute.Compute;
 import com.google.api.services.compute.Compute.InstanceGroups.AddInstances;
@@ -43,6 +45,7 @@ import com.sequenceiq.common.api.type.ResourceType;
  * This creates a Instance Group for every group defined in a stack.
  */
 
+@Service
 public class GcpInstanceGroupResourceBuilder extends AbstractGcpGroupBuilder {
 
     private static final int ORDER = 1;

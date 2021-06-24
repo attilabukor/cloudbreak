@@ -19,8 +19,6 @@ public class GcpResourceNameService extends CloudbreakResourceNameService {
 
     private static final String FIREWALL_IN_NAME_SUFFIX = "in";
 
-    private static final String INSTANCE_GROUP_NAME_SUFFIX = "group";
-
     private static final int ATTACHED_DISKS_PART_COUNT = 4;
 
     private static final int INSTANCE_NAME_PART_COUNT = 3;
@@ -62,7 +60,7 @@ public class GcpResourceNameService extends CloudbreakResourceNameService {
                 resourceName = deploymentTemplateName(parts);
                 break;
             case GCP_INSTANCE_GROUP:
-                resourceName = stackBasedResourceWithSuffix(INSTANCE_GROUP_NAME_SUFFIX, parts);
+                resourceName = gcpGroupResourceName(parts);
                 break;
             default:
                 throw new IllegalStateException("Unsupported resource type: " + resourceType);
@@ -142,5 +140,18 @@ public class GcpResourceNameService extends CloudbreakResourceNameService {
         subnetName = appendHash(subnetName, new Date());
         subnetName = adjustBaseLength(subnetName, maxResourceNameLength);
         return subnetName;
+    }
+
+    private String gcpGroupResourceName(Object[] parts) {
+        checkArgs(2, parts);
+        String name;
+        String stackName = String.valueOf(parts[0]);
+        String groupName = String.valueOf(parts[1]);
+        name = normalize(stackName);
+        name = adjustPartLength(name);
+        name = appendPart(name, normalize(groupName));
+        name = appendHash(name, new Date());
+        name = adjustBaseLength(name, maxResourceNameLength);
+        return name;
     }
 }
