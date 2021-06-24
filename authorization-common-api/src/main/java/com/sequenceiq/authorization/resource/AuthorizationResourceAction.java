@@ -32,6 +32,7 @@ public enum AuthorizationResourceAction {
     DELETE_CLUSTER_DEFINITION("environments/deleteClusterDefinitions", AuthorizationResourceType.CLUSTER_DEFINITION),
     CREATE_CLUSTER_DEFINITION("environments/createClusterDefinitions", AuthorizationResourceType.CLUSTER_DEFINITION),
     DESCRIBE_CLUSTER_TEMPLATE("environments/useSharedResource", AuthorizationResourceType.CLUSTER_TEMPLATE),
+    GET_AUDIT_EVENTS("environments/getAuditEvents", AuthorizationResourceType.AUDIT),
     DELETE_CLUSTER_TEMPLATE("datahub/deleteClusterTemplate", AuthorizationResourceType.CLUSTER_TEMPLATE),
     CREATE_CLUSTER_TEMPLATE("datahub/createClusterTemplate", AuthorizationResourceType.CLUSTER_TEMPLATE),
     GET_OPERATION_STATUS("environments/getFreeipaOperationStatus", AuthorizationResourceType.ENVIRONMENT),
