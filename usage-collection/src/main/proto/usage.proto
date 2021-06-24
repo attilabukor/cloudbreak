@@ -760,6 +760,7 @@ message CDPFreeIPADetails {
 // Azure specific environment details
 message CDPEnvironmentAzureDetails {
   bool singleResourceGroup = 1;
+  bool resourceEncryptionEnabled = 2;
 }
 
 // AWS specific environment details
